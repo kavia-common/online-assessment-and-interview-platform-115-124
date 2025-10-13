@@ -6,6 +6,9 @@ import SelectField from '../../../components/common/forms/SelectField';
 import TextField from '../../../components/common/forms/TextField';
 import Tag from '../../../components/common/Tag';
 import { adminService } from '../../../services/adminService';
+import Loader from '../../../components/common/Loader';
+import ErrorState from '../../../components/common/ErrorState';
+import { useApi } from '../../../hooks/useApi';
 
 /**
  * PUBLIC_INTERFACE
@@ -15,6 +18,7 @@ export default function ReportsList() {
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', status: 'all' });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error, retry } = useApi(() => adminService.listReports(filters), [filters], { auto: false });
 
   const load = async () => {
     setLoading(true);
@@ -66,7 +70,10 @@ export default function ReportsList() {
             <Button variant="secondary" onClick={load}>Refresh</Button>
           </div>
         </div>
-        {loading ? <div className="p-16">Loading...</div> : <Table columns={columns} data={items} />}
+        {loading && <Loader />}
+        {!loading && <Table columns={columns} data={items} />}
+        {!loading && items?.length === 0 && <div className="p-16">No reports found.</div>}
+        {error && <div className="mt-8"><ErrorState error={error} onRetry={retry} /></div>}
       </Card>
     </div>
   );

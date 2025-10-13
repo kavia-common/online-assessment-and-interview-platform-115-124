@@ -5,6 +5,9 @@ import CameraPreview from '../../components/test/CameraPreview';
 import { getSystemInfo, requestCameraStream } from '../../utils/systemInfo';
 import Stepper from '../../components/common/Stepper';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Loader from '../../components/common/Loader';
+import ErrorState from '../../components/common/ErrorState';
+import { useApi } from '../../hooks/useApi';
 
 /**
  * PUBLIC_INTERFACE
@@ -75,6 +78,7 @@ export default function TestLauncher() {
               <CameraPreview stream={stream} />
               <div style={{ display: 'grid', gap: 8 }}>
                 <Button onClick={requestMedia} disabled={busy}>{busy ? 'Requesting...' : 'Enable Camera'}</Button>
+                {busy && <Loader inline text="Granting camera permission..." />}
                 <Button variant="secondary" onClick={() => { stream?.getTracks()?.forEach(t => t.stop()); setStream(null); }}>Stop Camera</Button>
               </div>
             </div>

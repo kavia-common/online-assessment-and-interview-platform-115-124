@@ -8,6 +8,9 @@ import SelectField from '../../../components/common/forms/SelectField';
 import Tag from '../../../components/common/Tag';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
 import { adminService } from '../../../services/adminService';
+import Loader from '../../../components/common/Loader';
+import ErrorState from '../../../components/common/ErrorState';
+import { useApi } from '../../../hooks/useApi';
 
 /**
  * PUBLIC_INTERFACE
@@ -17,6 +20,7 @@ import { adminService } from '../../../services/adminService';
 export default function UsersList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error, retry } = useApi(() => adminService.listUsers(filters), [filters], { auto: false });
 
   const [filters, setFilters] = useState({ search: '', role: 'all', status: 'all' });
 
@@ -159,7 +163,10 @@ export default function UsersList() {
             { value: 'Suspended', label: 'Suspended' },
           ]} />
         </div>
-        {loading ? <div className="p-16">Loading...</div> : <Table columns={columns} data={items} />}
+        {loading && <Loader />}
+        {!loading && <Table columns={columns} data={items} />}
+        {!loading && items?.length === 0 && <div className="p-16">No users found.</div>}
+        {error && <div className="mt-8"><ErrorState error={error} onRetry={retry} /></div>}
       </Card>
 
       <Modal open={open} title={editing ? 'Edit User' : 'Create User'} onClose={() => setOpen(false)}>
