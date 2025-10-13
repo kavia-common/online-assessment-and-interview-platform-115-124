@@ -16,6 +16,9 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 
+import PrivateRoute from '../components/routing/PrivateRoute';
+import RoleRoute from '../components/routing/RoleRoute';
+
 /**
  * PUBLIC_INTERFACE
  * RoutesIndex defines the routing tree with role-based nested routes.
@@ -36,24 +39,35 @@ export default function RoutesIndex() {
         <Route path="/public" element={<div className="container"><h2>Welcome</h2><p>Public landing page placeholder.</p></div>} />
       </Route>
 
-      {/* Candidate */}
-      <Route path="/candidate" element={<CandidateLayout />}>
-        <Route index element={<CandidateDashboard />} />
-      </Route>
+      {/* Protected Routes */}
+      <Route element={<PrivateRoute />}>
+        {/* Candidate */}
+        <Route element={<RoleRoute allow={['candidate']} />}>
+          <Route path="/candidate" element={<CandidateLayout />}>
+            <Route index element={<CandidateDashboard />} />
+          </Route>
+        </Route>
 
-      {/* Admin */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<AdminDashboard />} />
-      </Route>
+        {/* Admin */}
+        <Route element={<RoleRoute allow={['admin']} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+          </Route>
+        </Route>
 
-      {/* HR */}
-      <Route path="/hr" element={<HRLayout />}>
-        <Route index element={<HRDashboard />} />
-      </Route>
+        {/* HR */}
+        <Route element={<RoleRoute allow={['hr']} />}>
+          <Route path="/hr" element={<HRLayout />}>
+            <Route index element={<HRDashboard />} />
+          </Route>
+        </Route>
 
-      {/* Employee */}
-      <Route path="/employee" element={<EmployeeLayout />}>
-        <Route index element={<EmployeeDashboard />} />
+        {/* Employee */}
+        <Route element={<RoleRoute allow={['employee']} />}>
+          <Route path="/employee" element={<EmployeeLayout />}>
+            <Route index element={<EmployeeDashboard />} />
+          </Route>
+        </Route>
       </Route>
 
       {/* Fallback */}
