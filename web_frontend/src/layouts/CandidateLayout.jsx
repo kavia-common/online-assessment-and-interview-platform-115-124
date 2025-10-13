@@ -1,13 +1,15 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar';
 import Topbar from '../components/navigation/Topbar';
 
 export default function CandidateLayout() {
   const nav = [
     { to: '/candidate', label: 'Dashboard' },
-    { to: '/candidate/tests', label: 'My Tests', disabled: true },
-    { to: '/candidate/profile', label: 'Profile', disabled: true },
+    { to: '/candidate/profile', label: 'Profile' },
+    { to: '/candidate/resume', label: 'Resume Upload' },
+    { to: '/candidate/questionnaire', label: 'Questionnaire' },
+    { to: '/candidate/interviews', label: 'Interviews' },
   ];
 
   return (

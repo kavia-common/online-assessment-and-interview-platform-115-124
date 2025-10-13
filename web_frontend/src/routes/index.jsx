@@ -22,6 +22,11 @@ import RoleRoute from '../components/routing/RoleRoute';
 import TestLauncher from '../pages/candidate/TestLauncher';
 import TestRunner from '../pages/candidate/TestRunner';
 import TestSummary from '../pages/candidate/TestSummary';
+import Profile from '../pages/candidate/Profile';
+import ResumeUpload from '../pages/candidate/ResumeUpload';
+import Questionnaire from '../pages/candidate/Questionnaire';
+import InterviewList from '../pages/candidate/InterviewList';
+import InterviewDetail from '../pages/candidate/InterviewDetail';
 
 /**
  * PUBLIC_INTERFACE
@@ -49,6 +54,11 @@ export default function RoutesIndex() {
         <Route element={<RoleRoute allow={['candidate']} />}>
           <Route path="/candidate" element={<CandidateLayout />}>
             <Route index element={<CandidateDashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="resume" element={<ResumeUpload />} />
+            <Route path="questionnaire" element={<Questionnaire />} />
+            <Route path="interviews" element={<InterviewList />} />
+            <Route path="interviews/:interviewId" element={<InterviewDetail />} />
             <Route path="tests/launch" element={<TestLauncher />} />
             <Route path="tests/run/:testId" element={<TestRunner />} />
             <Route path="tests/summary/:testId" element={<TestSummary />} />
