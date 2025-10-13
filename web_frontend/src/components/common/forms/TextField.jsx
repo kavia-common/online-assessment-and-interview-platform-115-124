@@ -2,54 +2,37 @@ import React from 'react';
 
 /**
  * PUBLIC_INTERFACE
- * TextField - controlled input with label and error message.
+ * Accessible TextField with helper text and inline validation.
  */
-export default function TextField({
-  label,
-  value,
-  onChange,
-  name,
-  type = 'text',
-  placeholder,
-  required = false,
-  error,
-  helpText,
-  ...rest
-}) {
+const TextField = ({ label, value, onChange, error, helperText, id, required, ...props }) => {
+  const inputId = id || `tf_${Math.random().toString(36).slice(2, 8)}`;
+  const describedBy = error ? `${inputId}_error` : helperText ? `${inputId}_help` : undefined;
+
   return (
     <div style={{ display: 'grid', gap: 6 }}>
-      {label && (
-        <label htmlFor={name} style={{ fontWeight: 600 }}>
-          {label} {required && <span style={{ color: 'var(--color-error)' }}>*</span>}
-        </label>
-      )}
+      {label && <label htmlFor={inputId} style={{ fontWeight: 600 }}>{label}{required ? ' *' : ''}</label>}
       <input
-        id={name}
-        name={name}
-        type={type}
-        value={value ?? ''}
-        onChange={(e) => onChange?.(e.target.value, e)}
-        placeholder={placeholder}
+        id={inputId}
+        value={value}
         aria-invalid={!!error}
-        aria-describedby={helpText ? `${name}-help` : undefined}
+        aria-describedby={describedBy}
+        onChange={(e) => onChange && onChange(e.target.value)}
         style={{
-          padding: 12,
-          borderRadius: 10,
-          border: `1px solid ${error ? 'var(--color-error)' : 'var(--border-color)'}`,
-          background: 'var(--bg-surface)',
+          height: 'var(--input-height)',
+          borderRadius: 'var(--radius-md)',
+          border: `1px solid ${error ? 'var(--color-error)' : 'var(--border)'}`,
+          padding: '0 12px',
+          outline: 'none',
+          transition: `box-shadow var(--transition-fast) ease, border-color var(--transition-fast) ease`,
         }}
-        {...rest}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-focus)'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+        onBlur={(e) => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = error ? 'var(--color-error)' : 'var(--border)'; }}
+        {...props}
       />
-      {helpText && !error && (
-        <div id={`${name}-help`} style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {helpText}
-        </div>
-      )}
-      {error && (
-        <div role="alert" style={{ fontSize: 12, color: 'var(--color-error)' }}>
-          {error}
-        </div>
-      )}
+      {helperText && !error && <div id={`${inputId}_help`} className="muted" style={{ fontSize: 12 }}>{helperText}</div>}
+      {error && <div id={`${inputId}_error`} style={{ color: 'var(--color-error)', fontSize: 12 }}>{error}</div>}
     </div>
   );
-}
+};
+
+export default TextField;

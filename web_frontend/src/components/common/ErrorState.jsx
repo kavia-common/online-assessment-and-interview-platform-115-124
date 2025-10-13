@@ -1,35 +1,18 @@
 import React from 'react';
-import RetryButton from './RetryButton';
+import Button from './Button';
 
 /**
  * PUBLIC_INTERFACE
- * ErrorState - Standard error presentation component with optional retry.
+ * ErrorState with themed visuals and optional retry action.
  */
-export default function ErrorState({ error, onRetry, title = 'Something went wrong' }) {
-  if (!error) return null;
-  const message = error?.message || 'An unexpected error occurred.';
-  const code = error?.status ? ` (code: ${error.status})` : '';
-
+const ErrorState = ({ title = 'Something went wrong', description = 'Please try again.', onRetry }) => {
   return (
-    <div
-      className="card p-16"
-      style={{
-        border: '1px solid var(--border-color)',
-        borderRadius: 8,
-        background: 'var(--bg-surface)',
-      }}
-    >
-      <div
-        style={{
-          color: 'var(--color-error, #EF4444)',
-          fontWeight: 600,
-          marginBottom: 6,
-        }}
-      >
-        {title}{code}
-      </div>
-      <div style={{ marginBottom: 8 }}>{message}</div>
-      {onRetry && <RetryButton onClick={onRetry} />}
+    <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)', borderColor: 'var(--color-error-50)', background: 'var(--color-error-50)' }}>
+      <div style={{ fontSize: 18, marginBottom: 6, color: 'var(--color-error)', fontWeight: 600 }}>{title}</div>
+      <div className="muted" style={{ marginBottom: 12 }}>{description}</div>
+      {onRetry && <Button onClick={onRetry} variant="destructive">Retry</Button>}
     </div>
   );
-}
+};
+
+export default ErrorState;

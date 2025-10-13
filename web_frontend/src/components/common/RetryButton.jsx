@@ -3,8 +3,10 @@ import Button from './Button';
 
 /**
  * PUBLIC_INTERFACE
- * RetryButton - A small convenience wrapper to standardize retry action buttons.
+ * RetryButton that uses secondary variant by default and supports overrides.
  */
-export default function RetryButton({ onClick, children = 'Retry' }) {
-  return <Button variant="secondary" onClick={onClick}>{children}</Button>;
-}
+const RetryButton = ({ onRetry, children = 'Retry', variant = 'secondary', ...props }) => {
+  return <Button onClick={onRetry} variant={variant} {...props}>{children}</Button>;
+};
+
+export default RetryButton;

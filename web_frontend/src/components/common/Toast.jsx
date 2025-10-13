@@ -1,48 +1,43 @@
-import React, { createContext, useContext, useCallback, useMemo, useState } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 
 /**
- * ToastProvider provides a simple pub/sub for toast notifications.
- * Uses ARIA live regions for screen readers.
+ * PUBLIC_INTERFACE
+ * Toast context and provider with stacking, max visible, and auto dismiss.
  */
-
-// PUBLIC_INTERFACE
 export const ToastContext = createContext({
   notify: (_msg, _type = 'info', _timeout) => {},
 });
 
-/** PUBLIC_INTERFACE */
 export const useToast = () => useContext(ToastContext);
 
-const ToastItem = ({ id, message, type, onDismiss }) => {
-  const bg =
-    type === 'success'
-      ? 'bg-green-600'
-      : type === 'error'
-      ? 'bg-red-600'
-      : type === 'warning'
-      ? 'bg-yellow-600'
-      : 'bg-blue-600';
+const MAX_VISIBLE = 3;
+
+const ToastItem = ({ id, title, description, type = 'info', duration = 3500, onDismiss }) => {
+  const timerRef = useRef();
+  useEffect(() => {
+    timerRef.current = setTimeout(() => onDismiss(id), duration);
+    return () => clearTimeout(timerRef.current);
+  }, [duration, id, onDismiss]);
+
+  const color =
+    type === 'error' ? 'var(--color-error)' :
+    type === 'success' ? 'var(--color-success)' :
+    type === 'warning' ? 'var(--color-secondary)' :
+    'var(--color-primary)';
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className={`${bg} text-white px-4 py-2 rounded shadow-md flex items-start gap-3`}
-    >
-      <span className="sr-only">{type}:</span>
-      <div className="flex-1">{message}</div>
-      <button
-        onClick={() => onDismiss(id)}
-        aria-label="Dismiss notification"
-        className="opacity-90 hover:opacity-100 focus:outline-none focus:ring focus:ring-white/50 rounded"
-      >
-        ✕
-      </button>
+    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 8, borderLeft: `4px solid ${color}`, padding: '12px 14px', minWidth: 240 }}>
+      <div style={{ fontWeight: 600 }}>{title}</div>
+      {description && <div className="muted" style={{ marginLeft: 8 }}>{description}</div>}
+      <button onClick={() => onDismiss(id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-muted)' }} aria-label="Dismiss">✕</button>
     </div>
   );
 };
 
-/** PUBLIC_INTERFACE */
+/**
+ * PUBLIC_INTERFACE
+ * ToastProvider component. Provides context and renders stacked toasts.
+ */
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
@@ -50,24 +45,21 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const notify = useCallback((message, type = 'info', timeout = 3000) => {
+  const notify = useCallback((title, type = 'info', timeout = 3500, description) => {
     const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    if (timeout) {
-      setTimeout(() => dismiss(id), timeout);
-    }
-  }, [dismiss]);
+    setToasts((prev) => {
+      const next = [...prev, { id, title, description, type, duration: timeout }];
+      if (next.length > MAX_VISIBLE) next.shift();
+      return next;
+    });
+  }, []);
 
   const value = useMemo(() => ({ notify }), [notify]);
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div
-        role="region"
-        aria-label="Notifications"
-        className="fixed bottom-4 right-4 z-[1100] flex flex-col gap-2"
-      >
+      <div className="toast-container" role="region" aria-label="Notifications">
         {toasts.map((t) => (
           <ToastItem key={t.id} {...t} onDismiss={dismiss} />
         ))}
@@ -76,4 +68,5 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
+// Default export preserved for backward compatibility; export the provider as default.
 export default ToastProvider;

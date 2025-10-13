@@ -1,130 +1,58 @@
-import React, { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 
 /**
  * PUBLIC_INTERFACE
- * Sidebar - responsive, collapsible navigation sidebar with ARIA attributes.
+ * Collapsible Sidebar with smooth width transition and active highlighting.
  */
-export default function Sidebar({ title = 'Menu', items = [] }) {
-  const [open, setOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const location = useLocation();
+const Sidebar = ({ links = [] }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const width = collapsed ? 64 : 240;
 
-  useEffect(() => {
-    const onResize = () => {
-      const mobile = window.innerWidth < 1024;
-      setIsMobile(mobile);
-      setOpen(!mobile);
-    };
-    onResize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  useEffect(() => {
-    if (isMobile) setOpen(false);
-  }, [location.pathname, isMobile]);
-
-  const sidebar = (
-    <aside
-      id="primary-sidebar"
-      role="navigation"
-      aria-label="Primary navigation"
-      className="sidebar"
-      style={{
-        position: isMobile ? 'fixed' : 'sticky',
-        left: 0,
-        top: 0,
-        height: '100vh',
-        width: isMobile ? 288 : 256,
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border-color)',
-        transform: open ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 200ms ease',
-        zIndex: 950,
-      }}
-    >
-      <div style={{ padding: 16, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center' }}>
-        <strong style={{ color: 'var(--text-primary)' }}>{title}</strong>
-        {isMobile && (
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close menu"
-            style={{
-              marginLeft: 'auto',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-surface)',
-              borderRadius: 8,
-              padding: '6px 8px',
-              cursor: 'pointer',
-            }}
-          >
-            ✕
-          </button>
-        )}
+  return (
+    <aside className="sidebar" style={{ width, background: 'var(--surface)', borderRight: '1px solid var(--border)', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
+      <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', borderBottom: '1px solid var(--border)' }}>
+        {!collapsed && <div style={{ fontWeight: 700 }}>Platform</div>}
+        <button
+          aria-label="Toggle sidebar"
+          onClick={() => setCollapsed(!collapsed)}
+          style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '4px 6px' }}
+        >
+          {collapsed ? '⟩' : '⟨'}
+        </button>
       </div>
-      <nav style={{ padding: 8, display: 'grid', gap: 6 }}>
-        {items.map((it) => (
+      <nav style={{ display: 'flex', flexDirection: 'column', padding: '8px' }}>
+        {links.map((l) => (
           <NavLink
-            key={it.to}
-            to={it.to}
+            key={l.to}
+            to={l.to}
+            end
+            className="sidebar-link"
             style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
               padding: '10px 12px',
-              borderRadius: 10,
+              color: isActive ? 'var(--color-primary)' : 'inherit',
               textDecoration: 'none',
-              color: isActive ? 'var(--color-primary)' : 'var(--text-primary)',
-              border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--border-color)'}`,
-              background: 'var(--bg-surface)',
-              boxShadow: isActive ? '0 0 0 2px var(--ring-color)' : 'var(--shadow-sm)',
+              borderRadius: 'var(--radius-sm)',
+              background: isActive ? 'var(--color-primary-50)' : 'transparent',
             })}
-            aria-label={`Navigate to ${it.label}`}
           >
-            {it.label}
+            <span aria-hidden="true">{l.icon}</span>
+            {!collapsed && <span>{l.label}</span>}
           </NavLink>
         ))}
       </nav>
-      <div style={{ marginTop: 'auto', padding: 12, fontSize: 12, color: 'var(--text-muted)' }}>
-        Ocean Professional
-      </div>
+
+      <style>{`
+        .sidebar-link:hover { background: rgba(17,24,39,0.03); }
+        @media (max-width: 480px) {
+          aside.sidebar { position: fixed; z-index: 40; height: 100vh; }
+        }
+      `}</style>
     </aside>
   );
+};
 
-  return (
-    <>
-      <button
-        className="show-on-mobile"
-        aria-label={`${open ? 'Close' : 'Open'} navigation menu`}
-        aria-expanded={open}
-        aria-controls="primary-sidebar"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          position: 'fixed',
-          top: 12,
-          left: 12,
-          zIndex: 960,
-          border: '1px solid var(--border-color)',
-          background: 'var(--bg-surface)',
-          borderRadius: 8,
-          padding: '8px 10px',
-          cursor: 'pointer',
-        }}
-      >
-        ☰
-      </button>
-      {sidebar}
-      {isMobile && open && (
-        <div
-          role="presentation"
-          aria-hidden="true"
-          onClick={() => setOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.3)',
-            zIndex: 940,
-          }}
-        />
-      )}
-    </>
-  );
-}
+export default Sidebar;

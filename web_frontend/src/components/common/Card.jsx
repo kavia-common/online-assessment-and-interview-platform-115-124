@@ -1,38 +1,29 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 /**
  * PUBLIC_INTERFACE
- * Card
- * Themed surface container with optional title and extra actions content.
+ * Card component with standard padding and elevation.
  */
-export default function Card({ title, extra, children, style }) {
+const Card = ({ children, title, actions, style, elevation = 'sm' }) => {
+  const shadow = {
+    sm: 'var(--shadow-sm)',
+    md: 'var(--shadow-md)',
+    lg: 'var(--shadow-lg)',
+  }[elevation] || 'var(--shadow-sm)';
+
   return (
-    <div
-      className="card"
-      style={{
-        background: '#ffffff',
-        border: '1px solid var(--border-color)',
-        borderRadius: '12px',
-        boxShadow: 'var(--shadow-sm)',
-        padding: 16,
-        ...style,
-      }}
-    >
-      {(title || extra) && (
-        <div className="flex items-center justify-between mb-16">
-          {title && <strong style={{ color: 'var(--text-primary)' }}>{title}</strong>}
-          {extra}
+    <div className="card" style={{ boxShadow: shadow, ...style }}>
+      {(title || actions) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+          {title && <h3 style={{ margin: 0, fontSize: 16, fontWeight: 'var(--heading-weight)' }}>{title}</h3>}
+          {actions}
         </div>
       )}
-      {children}
+      <div>
+        {children}
+      </div>
     </div>
   );
-}
-
-Card.propTypes = {
-  title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
-  extra: PropTypes.node,
-  children: PropTypes.node,
-  style: PropTypes.object,
 };
+
+export default Card;

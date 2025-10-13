@@ -2,60 +2,40 @@ import React from 'react';
 
 /**
  * PUBLIC_INTERFACE
- * SelectField - controlled select with label, options and error message.
+ * Accessible SelectField with helper text and error messages.
  */
-export default function SelectField({
-  label,
-  value,
-  onChange,
-  name,
-  options = [],
-  placeholder = 'Select...',
-  required = false,
-  error,
-  ...rest
-}) {
+const SelectField = ({ label, value, onChange, options = [], error, helperText, id, required, ...props }) => {
+  const selectId = id || `sf_${Math.random().toString(36).slice(2, 8)}`;
+  const describedBy = error ? `${selectId}_error` : helperText ? `${selectId}_help` : undefined;
+
   return (
     <div style={{ display: 'grid', gap: 6 }}>
-      {label && (
-        <label htmlFor={name} style={{ fontWeight: 600 }}>
-          {label} {required && <span style={{ color: 'var(--color-error)' }}>*</span>}
-        </label>
-      )}
+      {label && <label htmlFor={selectId} style={{ fontWeight: 600 }}>{label}{required ? ' *' : ''}</label>}
       <select
-        id={name}
-        name={name}
-        value={value ?? ''}
-        onChange={(e) => onChange?.(e.target.value, e)}
+        id={selectId}
+        value={value}
         aria-invalid={!!error}
+        aria-describedby={describedBy}
+        onChange={(e) => onChange && onChange(e.target.value)}
         style={{
-          padding: 12,
-          borderRadius: 10,
-          border: `1px solid ${error ? 'var(--color-error)' : 'var(--border-color)'}`,
-          background: 'var(--bg-surface)',
+          height: 'var(--input-height)',
+          borderRadius: 'var(--radius-md)',
+          border: `1px solid ${error ? 'var(--color-error)' : 'var(--border)'}`,
+          padding: '0 12px',
+          outline: 'none',
+          background: 'var(--surface)',
+          transition: `box-shadow var(--transition-fast) ease, border-color var(--transition-fast) ease`,
         }}
-        {...rest}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-focus)'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+        onBlur={(e) => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = error ? 'var(--color-error)' : 'var(--border)'; }}
+        {...props}
       >
-        <option value="" disabled>
-          {placeholder}
-        </option>
-        {options.map((opt) =>
-          typeof opt === 'string' ? (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ) : (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          )
-        )}
+        {options.map((o) => <option key={typeof o === 'string' ? o : o.value} value={typeof o === 'string' ? o : o.value}>{typeof o === 'string' ? o : o.label}</option>)}
       </select>
-      {error && (
-        <div role="alert" style={{ fontSize: 12, color: 'var(--color-error)' }}>
-          {error}
-        </div>
-      )}
+      {helperText && !error && <div id={`${selectId}_help`} className="muted" style={{ fontSize: 12 }}>{helperText}</div>}
+      {error && <div id={`${selectId}_error`} style={{ color: 'var(--color-error)', fontSize: 12 }}>{error}</div>}
     </div>
   );
-}
+};
+
+export default SelectField;

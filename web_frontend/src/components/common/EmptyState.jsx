@@ -1,14 +1,19 @@
 import React from 'react';
+import Button from './Button';
 
 /**
  * PUBLIC_INTERFACE
- * EmptyState - Display a consistent empty content message.
+ * Themed EmptyState to show no-data screens consistently.
  */
-export default function EmptyState({ title = 'No data', description = 'There is nothing to display yet.' }) {
+const EmptyState = ({ title = 'Nothing here', description = 'There is no data to show yet.', actionText, onAction, icon }) => {
   return (
-    <div className="card p-16" style={{ border: '1px dashed var(--border-color)', borderRadius: 8, background: 'var(--bg-surface)' }}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: 'var(--text-muted, #6b7280)' }}>{description}</div>
+    <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+      {icon ? <div style={{ fontSize: 28, marginBottom: 'var(--space-3)', color: 'var(--color-primary)' }}>{icon}</div> : null}
+      <div style={{ fontSize: 18, marginBottom: 6, color: 'var(--text-primary)', fontWeight: 600 }}>{title}</div>
+      <div className="muted" style={{ marginBottom: 12 }}>{description}</div>
+      {actionText && <Button onClick={onAction} variant="ghost">{actionText}</Button>}
     </div>
   );
-}
+};
+
+export default EmptyState;
