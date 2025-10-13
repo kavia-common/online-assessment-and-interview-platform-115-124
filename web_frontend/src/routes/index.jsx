@@ -34,6 +34,18 @@ import UsersList from '../pages/admin/users/UsersList';
 import ReportsList from '../pages/admin/reports/ReportsList';
 import Maintenance from '../pages/admin/maintenance/Maintenance';
 
+import TestConfig from '../pages/hr/TestConfig';
+import PatternConfig from '../pages/hr/PatternConfig';
+import BulkUpload from '../pages/hr/BulkUpload';
+import Assignment from '../pages/hr/Assignment';
+import EmailTriggers from '../pages/hr/EmailTriggers';
+import LiveMonitor from '../pages/hr/LiveMonitor';
+import TimeAdjustment from '../pages/hr/TimeAdjustment';
+import ReappearRequests from '../pages/hr/ReappearRequests';
+import ResultsList from '../pages/hr/ResultsList';
+import ExportCenter from '../pages/hr/Export';
+import AssignToEmployee from '../pages/hr/AssignToEmployee';
+
 /**
  * PUBLIC_INTERFACE
  * RoutesIndex defines the routing tree with role-based nested routes.
@@ -96,6 +108,17 @@ export default function RoutesIndex() {
         <Route element={<RoleRoute allow={['hr']} />}>
           <Route path="/hr" element={<HRLayout />}>
             <Route index element={<HRDashboard />} />
+            <Route path="test-config" element={<TestConfig />} />
+            <Route path="pattern-config" element={<PatternConfig />} />
+            <Route path="bulk-upload" element={<BulkUpload />} />
+            <Route path="assignment" element={<Assignment />} />
+            <Route path="email-triggers" element={<EmailTriggers />} />
+            <Route path="live-monitor" element={<LiveMonitor />} />
+            <Route path="time-adjustment" element={<TimeAdjustment />} />
+            <Route path="reappear-requests" element={<ReappearRequests />} />
+            <Route path="results" element={<ResultsList />} />
+            <Route path="export" element={<ExportCenter />} />
+            <Route path="assign-to-employee" element={<AssignToEmployee />} />
           </Route>
         </Route>
 
