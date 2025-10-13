@@ -30,6 +30,9 @@ import InterviewDetail from '../pages/candidate/InterviewDetail';
 
 import { QuestionBankList, QuestionEditor, ImportExport as QuestionsImportExport } from '../pages/admin/questions';
 import { TemplateList, TemplateEditor } from '../pages/admin/tests';
+import UsersList from '../pages/admin/users/UsersList';
+import ReportsList from '../pages/admin/reports/ReportsList';
+import Maintenance from '../pages/admin/maintenance/Maintenance';
 
 /**
  * PUBLIC_INTERFACE
@@ -81,6 +84,11 @@ export default function RoutesIndex() {
             <Route path="tests/templates" element={<TemplateList />} />
             <Route path="tests/templates/new" element={<TemplateEditor />} />
             <Route path="tests/templates/edit/:id" element={<TemplateEditor />} />
+
+            {/* Users, Reports, Maintenance */}
+            <Route path="users" element={<UsersList />} />
+            <Route path="reports" element={<ReportsList />} />
+            <Route path="maintenance" element={<Maintenance />} />
           </Route>
         </Route>
 
