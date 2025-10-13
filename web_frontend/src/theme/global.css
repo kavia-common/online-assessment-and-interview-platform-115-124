@@ -67,29 +67,6 @@ a:hover {
   border-bottom-color: transparent;
 }
 
-/* KPI tile subtle hover */
-.kpi-grid .kpi-tile:hover {
-  transform: translateY(-1px);
-  transition: transform 160ms ease, box-shadow 160ms ease;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-}
-
-.hr {
-  height: 1px;
-  width: 100%;
-  background: var(--border-color);
-}
-
-input, select, textarea, button {
-  font-family: inherit;
-  font-size: 100%;
-}
-
-:focus-visible {
-  outline: 2px solid var(--ring-color);
-  outline-offset: 2px;
-}
-
 /* Utility */
 .flex { display: flex; }
 .items-center { align-items: center; }
@@ -139,4 +116,27 @@ input, select, textarea, button {
 .content {
   grid-area: content;
   padding: 20px;
+}
+
+/* Focus visibility for accessibility */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--ring-color);
+  outline-offset: 2px;
+}
+
+/* Mobile helpers */
+.show-on-mobile { display: none; }
+.hide-on-mobile { display: initial; }
+
+@media (max-width: 1024px) {
+  .show-on-mobile { display: initial; }
+  .hide-on-mobile { display: none !important; }
+}
+
+/* Smooth transitions for interactive elements */
+button, a {
+  transition: background-color .2s ease, color .2s ease, transform .2s ease, opacity .2s ease, box-shadow .2s ease;
 }

@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 
 /**
  * PUBLIC_INTERFACE
- * ActivityFeed
- * A simple list of recent actions with timestamp and type badge.
+ * ActivityFeed - list of recent actions with accessible feed semantics.
  */
 const ActivityFeed = ({ items, maxItems = 8 }) => {
   const visible = items.slice(0, maxItems);
@@ -24,10 +23,13 @@ const ActivityFeed = ({ items, maxItems = 8 }) => {
   };
 
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+    <div role="feed" aria-busy={false} aria-live="polite" style={{ display: 'grid', gap: 12 }}>
       {visible.map((it, idx) => (
-        <li
+        <article
           key={idx}
+          role="article"
+          aria-posinset={idx + 1}
+          aria-setsize={visible.length}
           style={{
             background: '#ffffff',
             border: '1px solid rgba(17,24,39,0.06)',
@@ -40,6 +42,7 @@ const ActivityFeed = ({ items, maxItems = 8 }) => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
+              aria-hidden="true"
               style={{
                 display: 'inline-block',
                 width: 8,
@@ -50,11 +53,11 @@ const ActivityFeed = ({ items, maxItems = 8 }) => {
             />
             <div style={{ color: '#111827', fontWeight: 600, fontSize: 14 }}>{it.title}</div>
           </div>
-          <div style={{ color: '#4B5563', fontSize: 13 }}>{it.description}</div>
+          {it.description && <div style={{ color: '#4B5563', fontSize: 13 }}>{it.description}</div>}
           <div style={{ color: '#6B7280', fontSize: 12 }}>{new Date(it.timestamp).toLocaleString()}</div>
-        </li>
+        </article>
       ))}
-    </ul>
+    </div>
   );
 };
 
