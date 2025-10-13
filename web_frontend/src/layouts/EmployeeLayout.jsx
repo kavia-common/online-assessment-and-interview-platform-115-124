@@ -3,24 +3,27 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar';
 import Topbar from '../components/navigation/Topbar';
 
+/**
+ * PUBLIC_INTERFACE
+ * EmployeeLayout wraps employee-facing routes with sidebar and topbar.
+ */
 export default function EmployeeLayout() {
-  const nav = [
-    { to: '/employee', label: 'Dashboard' },
-    { to: '/employee/interviews', label: 'Interviews', disabled: true },
-    { to: '/employee/chat', label: 'Chat', disabled: true },
+  const links = [
+    { to: '/employee', label: 'Dashboard', icon: '📊' },
+    { to: '/employee/reviews', label: 'Assigned Reviews', icon: '📝' },
+    { to: '/employee/interviews', label: 'Interviews', icon: '🗓️' },
+    { to: '/employee/chat', label: 'Chat', icon: '💬' },
   ];
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <Sidebar title="Employee" items={nav} />
-      </aside>
-      <header className="topbar">
-        <Topbar title="Employee Portal" />
-      </header>
-      <main className="content">
-        <Outlet />
-      </main>
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <Sidebar links={links} />
+      <div className="ml-64">
+        <Topbar />
+        <main className="p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

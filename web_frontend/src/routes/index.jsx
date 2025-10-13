@@ -1,137 +1,143 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import CandidateLayout from '../layouts/CandidateLayout';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import PublicLayout from '../layouts/PublicLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import HRLayout from '../layouts/HRLayout';
+import CandidateLayout from '../layouts/CandidateLayout';
 import EmployeeLayout from '../layouts/EmployeeLayout';
-import AuthLayout from '../layouts/AuthLayout';
-import PublicLayout from '../layouts/PublicLayout';
-
-import CandidateDashboard from '../pages/dashboard/CandidateDashboard';
-import AdminDashboard from '../pages/dashboard/AdminDashboard';
-import HRDashboard from '../pages/dashboard/HRDashboard';
-import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard';
-
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
-
+import AdminDashboard from '../pages/dashboard/AdminDashboard';
+import HRDashboard from '../pages/dashboard/HRDashboard';
+import CandidateDashboard from '../pages/dashboard/CandidateDashboard';
+import EmployeeDashboard from '../pages/dashboard/EmployeeDashboard';
 import PrivateRoute from '../components/routing/PrivateRoute';
 import RoleRoute from '../components/routing/RoleRoute';
 
+// Admin pages
+import UsersList from '../pages/admin/users/UsersList';
+import ReportsList from '../pages/admin/reports/ReportsList';
+import { TemplateList, TemplateEditor } from '../pages/admin/tests';
+import { QuestionBankList, QuestionEditor, ImportExport as QuestionsImportExport } from '../pages/admin/questions';
+import Maintenance from '../pages/admin/maintenance/Maintenance';
+
+// HR pages (use named exports from index)
+import {
+  AssignToEmployee,
+  Assignment,
+  BulkUpload,
+  EmailTriggers,
+  Export as HRExport,
+  Filters,
+  LiveMonitor,
+  PatternConfig,
+  ReappearRequests,
+  ResultsList,
+  TestConfig,
+  TimeAdjustment,
+} from '../pages/hr';
+
+// Candidate pages
+import CandidateProfile from '../pages/candidate/Profile';
+import ResumeUpload from '../pages/candidate/ResumeUpload';
+import Questionnaire from '../pages/candidate/Questionnaire';
 import TestLauncher from '../pages/candidate/TestLauncher';
 import TestRunner from '../pages/candidate/TestRunner';
 import TestSummary from '../pages/candidate/TestSummary';
-import Profile from '../pages/candidate/Profile';
-import ResumeUpload from '../pages/candidate/ResumeUpload';
-import Questionnaire from '../pages/candidate/Questionnaire';
 import InterviewList from '../pages/candidate/InterviewList';
 import InterviewDetail from '../pages/candidate/InterviewDetail';
 
-import { QuestionBankList, QuestionEditor, ImportExport as QuestionsImportExport } from '../pages/admin/questions';
-import { TemplateList, TemplateEditor } from '../pages/admin/tests';
-import UsersList from '../pages/admin/users/UsersList';
-import ReportsList from '../pages/admin/reports/ReportsList';
-import Maintenance from '../pages/admin/maintenance/Maintenance';
-
-import TestConfig from '../pages/hr/TestConfig';
-import PatternConfig from '../pages/hr/PatternConfig';
-import BulkUpload from '../pages/hr/BulkUpload';
-import Assignment from '../pages/hr/Assignment';
-import EmailTriggers from '../pages/hr/EmailTriggers';
-import LiveMonitor from '../pages/hr/LiveMonitor';
-import TimeAdjustment from '../pages/hr/TimeAdjustment';
-import ReappearRequests from '../pages/hr/ReappearRequests';
-import ResultsList from '../pages/hr/ResultsList';
-import ExportCenter from '../pages/hr/Export';
-import AssignToEmployee from '../pages/hr/AssignToEmployee';
+// Employee pages
+import AssignedReviews from '../pages/employee/AssignedReviews';
+import ReviewDetail from '../pages/employee/ReviewDetail';
+import Interviews from '../pages/employee/Interviews';
+import Chat from '../pages/employee/Chat';
 
 /**
  * PUBLIC_INTERFACE
- * RoutesIndex defines the routing tree with role-based nested routes.
+ * AppRoutes registers all app routes with role-based protection.
  */
-export default function RoutesIndex() {
+const AppRoutes = () => {
   return (
-    <Routes>
-      {/* Auth routes */}
-      <Route element={<AuthLayout />}>
-        <Route path="/auth/login" element={<Login />} />
-        <Route path="/auth/register" element={<Register />} />
-        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-      </Route>
+    <Router>
+      <Routes>
+        {/* Public auth routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
 
-      {/* Public */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
-        <Route path="/public" element={<div className="container"><h2>Welcome</h2><p>Public landing page placeholder.</p></div>} />
-      </Route>
+        {/* Admin routes */}
+        <Route element={<PrivateRoute />}>
+          <Route element={<RoleRoute role="admin" />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UsersList />} />
+              <Route path="/admin/reports" element={<ReportsList />} />
+              <Route path="/admin/tests" element={<TemplateList />} />
+              <Route path="/admin/tests/new" element={<TemplateEditor />} />
+              <Route path="/admin/tests/:templateId" element={<TemplateEditor />} />
+              <Route path="/admin/questions" element={<QuestionBankList />} />
+              <Route path="/admin/questions/new" element={<QuestionEditor />} />
+              <Route path="/admin/questions/:questionId" element={<QuestionEditor />} />
+              <Route path="/admin/questions/import-export" element={<QuestionsImportExport />} />
+              <Route path="/admin/maintenance" element={<Maintenance />} />
+            </Route>
+          </Route>
 
-      {/* Protected Routes */}
-      <Route element={<PrivateRoute />}>
-        {/* Candidate */}
-        <Route element={<RoleRoute allow={['candidate']} />}>
-          <Route path="/candidate" element={<CandidateLayout />}>
-            <Route index element={<CandidateDashboard />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="resume" element={<ResumeUpload />} />
-            <Route path="questionnaire" element={<Questionnaire />} />
-            <Route path="interviews" element={<InterviewList />} />
-            <Route path="interviews/:interviewId" element={<InterviewDetail />} />
-            <Route path="tests/launch" element={<TestLauncher />} />
-            <Route path="tests/run/:testId" element={<TestRunner />} />
-            <Route path="tests/summary/:testId" element={<TestSummary />} />
+          {/* HR routes */}
+          <Route element={<RoleRoute role="hr" />}>
+            <Route element={<HRLayout />}>
+              <Route path="/hr" element={<HRDashboard />} />
+              <Route path="/hr/assign" element={<AssignToEmployee />} />
+              <Route path="/hr/assignment" element={<Assignment />} />
+              <Route path="/hr/bulk-upload" element={<BulkUpload />} />
+              <Route path="/hr/email-triggers" element={<EmailTriggers />} />
+              <Route path="/hr/export" element={<HRExport />} />
+              <Route path="/hr/filters" element={<Filters />} />
+              <Route path="/hr/live-monitor" element={<LiveMonitor />} />
+              <Route path="/hr/pattern-config" element={<PatternConfig />} />
+              <Route path="/hr/reappear-requests" element={<ReappearRequests />} />
+              <Route path="/hr/results" element={<ResultsList />} />
+              <Route path="/hr/test-config" element={<TestConfig />} />
+              <Route path="/hr/time-adjustment" element={<TimeAdjustment />} />
+            </Route>
+          </Route>
+
+          {/* Candidate routes */}
+          <Route element={<RoleRoute role="candidate" />}>
+            <Route element={<CandidateLayout />}>
+              <Route path="/candidate" element={<CandidateDashboard />} />
+              <Route path="/candidate/profile" element={<CandidateProfile />} />
+              <Route path="/candidate/resume" element={<ResumeUpload />} />
+              <Route path="/candidate/questionnaire" element={<Questionnaire />} />
+              <Route path="/candidate/test-launcher" element={<TestLauncher />} />
+              <Route path="/candidate/test/:testId" element={<TestRunner />} />
+              <Route path="/candidate/test/:testId/summary" element={<TestSummary />} />
+              <Route path="/candidate/interviews" element={<InterviewList />} />
+              <Route path="/candidate/interviews/:interviewId" element={<InterviewDetail />} />
+            </Route>
+          </Route>
+
+          {/* Employee routes */}
+          <Route element={<RoleRoute role="employee" />}>
+            <Route element={<EmployeeLayout />}>
+              <Route path="/employee" element={<EmployeeDashboard />} />
+              <Route path="/employee/reviews" element={<AssignedReviews />} />
+              <Route path="/employee/reviews/:reviewId" element={<ReviewDetail />} />
+              <Route path="/employee/interviews" element={<Interviews />} />
+              <Route path="/employee/chat" element={<Chat />} />
+            </Route>
           </Route>
         </Route>
 
-        {/* Admin */}
-        <Route element={<RoleRoute allow={['admin']} />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            {/* Question Bank */}
-            <Route path="questions" element={<QuestionBankList />} />
-            <Route path="questions/import-export" element={<QuestionsImportExport />} />
-            <Route path="questions/edit/:id" element={<QuestionEditor />} />
-            <Route path="questions/new" element={<QuestionEditor />} />
-            {/* Test Templates */}
-            <Route path="tests/templates" element={<TemplateList />} />
-            <Route path="tests/templates/new" element={<TemplateEditor />} />
-            <Route path="tests/templates/edit/:id" element={<TemplateEditor />} />
-
-            {/* Users, Reports, Maintenance */}
-            <Route path="users" element={<UsersList />} />
-            <Route path="reports" element={<ReportsList />} />
-            <Route path="maintenance" element={<Maintenance />} />
-          </Route>
-        </Route>
-
-        {/* HR */}
-        <Route element={<RoleRoute allow={['hr']} />}>
-          <Route path="/hr" element={<HRLayout />}>
-            <Route index element={<HRDashboard />} />
-            <Route path="test-config" element={<TestConfig />} />
-            <Route path="pattern-config" element={<PatternConfig />} />
-            <Route path="bulk-upload" element={<BulkUpload />} />
-            <Route path="assignment" element={<Assignment />} />
-            <Route path="email-triggers" element={<EmailTriggers />} />
-            <Route path="live-monitor" element={<LiveMonitor />} />
-            <Route path="time-adjustment" element={<TimeAdjustment />} />
-            <Route path="reappear-requests" element={<ReappearRequests />} />
-            <Route path="results" element={<ResultsList />} />
-            <Route path="export" element={<ExportCenter />} />
-            <Route path="assign-to-employee" element={<AssignToEmployee />} />
-          </Route>
-        </Route>
-
-        {/* Employee */}
-        <Route element={<RoleRoute allow={['employee']} />}>
-          <Route path="/employee" element={<EmployeeLayout />}>
-            <Route index element={<EmployeeDashboard />} />
-          </Route>
-        </Route>
-      </Route>
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/auth/login" replace />} />
-    </Routes>
+        {/* default route */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
   );
-}
+};
+
+export default AppRoutes;
