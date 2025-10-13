@@ -28,6 +28,9 @@ import Questionnaire from '../pages/candidate/Questionnaire';
 import InterviewList from '../pages/candidate/InterviewList';
 import InterviewDetail from '../pages/candidate/InterviewDetail';
 
+import { QuestionBankList, QuestionEditor, ImportExport as QuestionsImportExport } from '../pages/admin/questions';
+import { TemplateList, TemplateEditor } from '../pages/admin/tests';
+
 /**
  * PUBLIC_INTERFACE
  * RoutesIndex defines the routing tree with role-based nested routes.
@@ -69,6 +72,15 @@ export default function RoutesIndex() {
         <Route element={<RoleRoute allow={['admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            {/* Question Bank */}
+            <Route path="questions" element={<QuestionBankList />} />
+            <Route path="questions/import-export" element={<QuestionsImportExport />} />
+            <Route path="questions/edit/:id" element={<QuestionEditor />} />
+            <Route path="questions/new" element={<QuestionEditor />} />
+            {/* Test Templates */}
+            <Route path="tests/templates" element={<TemplateList />} />
+            <Route path="tests/templates/new" element={<TemplateEditor />} />
+            <Route path="tests/templates/edit/:id" element={<TemplateEditor />} />
           </Route>
         </Route>
 

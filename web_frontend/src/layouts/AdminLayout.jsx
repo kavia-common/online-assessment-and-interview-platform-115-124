@@ -6,6 +6,8 @@ import Topbar from '../components/navigation/Topbar';
 export default function AdminLayout() {
   const nav = [
     { to: '/admin', label: 'Dashboard' },
+    { to: '/admin/questions', label: 'Question Bank' },
+    { to: '/admin/tests/templates', label: 'Test Templates' },
     { to: '/admin/users', label: 'Users', disabled: true },
     { to: '/admin/reports', label: 'Reports', disabled: true },
     { to: '/admin/settings', label: 'Settings', disabled: true },
