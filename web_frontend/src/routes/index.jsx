@@ -19,6 +19,10 @@ import ForgotPassword from '../pages/auth/ForgotPassword';
 import PrivateRoute from '../components/routing/PrivateRoute';
 import RoleRoute from '../components/routing/RoleRoute';
 
+import TestLauncher from '../pages/candidate/TestLauncher';
+import TestRunner from '../pages/candidate/TestRunner';
+import TestSummary from '../pages/candidate/TestSummary';
+
 /**
  * PUBLIC_INTERFACE
  * RoutesIndex defines the routing tree with role-based nested routes.
@@ -45,6 +49,9 @@ export default function RoutesIndex() {
         <Route element={<RoleRoute allow={['candidate']} />}>
           <Route path="/candidate" element={<CandidateLayout />}>
             <Route index element={<CandidateDashboard />} />
+            <Route path="tests/launch" element={<TestLauncher />} />
+            <Route path="tests/run/:testId" element={<TestRunner />} />
+            <Route path="tests/summary/:testId" element={<TestSummary />} />
           </Route>
         </Route>
 
