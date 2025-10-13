@@ -46,6 +46,34 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
+/* Tabs styling helpers */
+.tab-list {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.tab-button {
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px 8px 0 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.tab-button.active {
+  background: linear-gradient(to bottom right, rgba(59,130,246,0.08), #ffffff);
+  color: var(--text-primary);
+  border: 1px solid rgba(37,99,235,0.12);
+  border-bottom-color: transparent;
+}
+
+/* KPI tile subtle hover */
+.kpi-grid .kpi-tile:hover {
+  transform: translateY(-1px);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
 .hr {
   height: 1px;
   width: 100%;

@@ -1,31 +1,73 @@
 import React from 'react';
+import KPIGrid from '../../components/common/KPIGrid';
+import TrendChart from '../../components/common/TrendChart';
+import ActivityFeed from '../../components/common/ActivityFeed';
 import Card from '../../components/common/Card';
-import StatTile from '../../components/common/StatTile';
-import Table from '../../components/common/Table';
-import Tag from '../../components/common/Tag';
+import Tabs from '../../components/common/Tabs';
+import { getDashboardMockData } from '../../services/mockData';
 
+/**
+ * PUBLIC_INTERFACE
+ * HRDashboard
+ * Dashboard for HR with KPIs, live tests trend, and events.
+ */
 export default function HRDashboard() {
-  const columns = [
-    { key: 'name', title: 'Batch', dataIndex: 'name' },
-    { key: 'candidates', title: 'Candidates', dataIndex: 'candidates' },
-    { key: 'status', title: 'Status', dataIndex: 'status', render: (v) => <Tag color={v === 'In Progress' ? 'primary' : 'success'}>{v}</Tag> },
-  ];
-  const data = [
-    { name: 'Spring 2025', candidates: 120, status: 'In Progress' },
-    { name: 'Fall 2024', candidates: 98, status: 'Completed' },
+  const data = getDashboardMockData('hr');
+
+  const tabs = [
+    {
+      key: 'overview',
+      label: 'Overview',
+      content: (
+        <div style={{ display: 'grid', gap: 16 }}>
+          <KPIGrid items={data.kpis} columns={4} />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            <Card title="Live Tests Trend">
+              <TrendChart data={data.trend} />
+            </Card>
+            <Card title="Recent Events">
+              <ActivityFeed items={data.activity} />
+            </Card>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'assignments',
+      label: 'Assignments',
+      content: (
+        <Card title="Assignments">
+          <p style={{ color: '#4B5563' }}>Assign candidates to employees using the HR modules in the sidebar.</p>
+        </Card>
+      ),
+    },
+    {
+      key: 'results',
+      label: 'Results',
+      content: (
+        <Card title="Results & Exports">
+          <p style={{ color: '#4B5563' }}>Filter, sort and export results from the Results module.</p>
+        </Card>
+      ),
+    },
   ];
 
   return (
     <div className="container" style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
-        <StatTile label="Active Batches" value="3" trend={2} />
-        <StatTile label="In Test" value="45" trend={1} />
-        <StatTile label="Awaiting Interview" value="18" />
+      <div
+        style={{
+          background: 'linear-gradient(to right, rgba(59,130,246,0.08), rgba(243,244,246,1))',
+          border: '1px solid rgba(37,99,235,0.12)',
+          padding: '16px 20px',
+          borderRadius: 12,
+        }}
+      >
+        <h2 style={{ margin: 0, color: '#111827' }}>HR Dashboard</h2>
+        <p style={{ margin: 0, marginTop: 4, color: '#4B5563' }}>
+          Manage test setup, assignments, monitoring and results.
+        </p>
       </div>
-
-      <Card title="Recent Batches">
-        <Table columns={columns} data={data} />
-      </Card>
+      <Tabs items={tabs} />
     </div>
   );
 }

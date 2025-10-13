@@ -1,31 +1,73 @@
 import React from 'react';
+import KPIGrid from '../../components/common/KPIGrid';
+import TrendChart from '../../components/common/TrendChart';
+import ActivityFeed from '../../components/common/ActivityFeed';
 import Card from '../../components/common/Card';
-import StatTile from '../../components/common/StatTile';
-import Table from '../../components/common/Table';
-import Tag from '../../components/common/Tag';
+import Tabs from '../../components/common/Tabs';
+import { getDashboardMockData } from '../../services/mockData';
 
+/**
+ * PUBLIC_INTERFACE
+ * EmployeeDashboard
+ * Dashboard for employees with throughput trend and activity.
+ */
 export default function EmployeeDashboard() {
-  const columns = [
-    { key: 'candidate', title: 'Candidate', dataIndex: 'candidate' },
-    { key: 'test', title: 'Test', dataIndex: 'test' },
-    { key: 'status', title: 'Status', dataIndex: 'status', render: (v) => <Tag color={v === 'Pending Review' ? 'warning' : 'success'}>{v}</Tag> },
-  ];
-  const data = [
-    { candidate: 'Alex P.', test: 'JS Coding', status: 'Pending Review' },
-    { candidate: 'Sam K.', test: 'Aptitude', status: 'Reviewed' },
+  const data = getDashboardMockData('employee');
+
+  const tabs = [
+    {
+      key: 'overview',
+      label: 'Overview',
+      content: (
+        <div style={{ display: 'grid', gap: 16 }}>
+          <KPIGrid items={data.kpis} columns={4} />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            <Card title="Review Throughput">
+              <TrendChart data={data.trend} />
+            </Card>
+            <Card title="Recent Activity">
+              <ActivityFeed items={data.activity} />
+            </Card>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'reviews',
+      label: 'Reviews',
+      content: (
+        <Card title="Assigned Reviews">
+          <p style={{ color: '#4B5563' }}>Your pending and completed reviews will appear here.</p>
+        </Card>
+      ),
+    },
+    {
+      key: 'interviews',
+      label: 'Interviews',
+      content: (
+        <Card title="Interviews">
+          <p style={{ color: '#4B5563' }}>Interview schedules and feedback status overview.</p>
+        </Card>
+      ),
+    },
   ];
 
   return (
     <div className="container" style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
-        <StatTile label="Assigned" value="9" trend={3} />
-        <StatTile label="Reviewed" value="6" trend={2} />
-        <StatTile label="Pending" value="3" trend={-1} />
+      <div
+        style={{
+          background: 'linear-gradient(to right, rgba(59,130,246,0.08), rgba(243,244,246,1))',
+          border: '1px solid rgba(37,99,235,0.12)',
+          padding: '16px 20px',
+          borderRadius: 12,
+        }}
+      >
+        <h2 style={{ margin: 0, color: '#111827' }}>Employee Dashboard</h2>
+        <p style={{ margin: 0, marginTop: 4, color: '#4B5563' }}>
+          Track your review workload, interviews and productivity trends.
+        </p>
       </div>
-
-      <Card title="Assignments">
-        <Table columns={columns} data={data} />
-      </Card>
+      <Tabs items={tabs} />
     </div>
   );
 }
