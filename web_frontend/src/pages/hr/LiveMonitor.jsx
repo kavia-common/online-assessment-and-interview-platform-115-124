@@ -5,6 +5,7 @@ import Tag from '../../components/common/Tag';
 import TextField from '../../components/common/forms/TextField';
 import Button from '../../components/common/Button';
 import { hrService } from '../../services/hrService';
+import { getEnv } from '../../config/env';
 
 /**
  * PUBLIC_INTERFACE
@@ -15,6 +16,7 @@ export default function LiveMonitor() {
   const [batchId, setBatchId] = useState('spring-2025');
   const [connected, setConnected] = useState(false);
   const [events, setEvents] = useState([]);
+  const { enableMocks } = getEnv();
 
   // Maintain a limited size list
   const pushEvent = (evt) => setEvents((e) => [evt, ...e].slice(0, 100));
@@ -22,24 +24,39 @@ export default function LiveMonitor() {
   useEffect(() => {
     setEvents([]);
     let closeFn = null;
-    // Subscribe to WS stream; in mock, no real server sends messages.
+
+    // Subscribe to WS stream; backend will push events
     closeFn = hrService.subscribeLiveMonitor(batchId, (msg) => {
+      if (msg?.type === 'info' && msg.payload === 'Disconnected') {
+        setConnected(false);
+        return;
+      }
       setConnected(true);
       const time = new Date().toLocaleTimeString();
       pushEvent({ time, ...msg });
     });
-    // Add a mock generator when in mocks (no backend)
-    const mockInterval = setInterval(() => {
-      const kinds = ['joined', 'tab-hidden', 'idle', 'submit', 'violation'];
-      const k = kinds[Math.floor(Math.random() * kinds.length)];
-      pushEvent({ type: k, candidate: 'User_' + Math.floor(Math.random() * 50), payload: '...' , time: new Date().toLocaleTimeString() });
-    }, 3000);
+
+    // Add a mock generator when mocks enabled (no backend)
+    let mockInterval = null;
+    if (enableMocks) {
+      mockInterval = setInterval(() => {
+        const kinds = ['joined', 'tab-hidden', 'idle', 'submit', 'violation'];
+        const k = kinds[Math.floor(Math.random() * kinds.length)];
+        pushEvent({
+          type: k,
+          candidate: 'User_' + Math.floor(Math.random() * 50),
+          payload: '...',
+          time: new Date().toLocaleTimeString(),
+        });
+      }, 3000);
+    }
+
     return () => {
       closeFn && closeFn();
-      clearInterval(mockInterval);
+      if (mockInterval) clearInterval(mockInterval);
       setConnected(false);
     };
-  }, [batchId]);
+  }, [batchId, enableMocks]);
 
   const columns = useMemo(() => [
     { key: 'time', title: 'Time', dataIndex: 'time' },
@@ -58,7 +75,7 @@ export default function LiveMonitor() {
           </div>
         </div>
         <div className="mt-16" style={{ color: 'var(--text-secondary)' }}>
-          Status: {connected ? 'Connected (mock)' : 'Disconnected'}
+          Status: {connected ? 'Connected' : 'Disconnected'} {enableMocks ? '(mock)' : ''}
         </div>
         <div className="mt-16">
           <Table columns={columns} data={events} />

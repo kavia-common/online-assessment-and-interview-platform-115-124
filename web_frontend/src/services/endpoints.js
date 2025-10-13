@@ -3,7 +3,7 @@ import { getEnv } from '../config/env';
 /**
  * PUBLIC_INTERFACE
  * endpoints - Centralized API endpoint map using environment base URL.
- * NOTE: Keep only path segments here; apiClient prefixes apiBase.
+ * NOTE: Keep only path segments here; apiClient prefixes apiBase for HTTP.
  */
 const { apiBase } = getEnv();
 
@@ -15,6 +15,7 @@ export function withBase(path) {
   return path.startsWith('http') ? path : `${apiBase}${path}`;
 }
 
+// Auth endpoints
 export const AUTH = Object.freeze({
   LOGIN: '/auth/login',
   LOGOUT: '/auth/logout',
@@ -23,6 +24,7 @@ export const AUTH = Object.freeze({
   PROFILE: '/auth/me',
 });
 
+// Admin endpoints
 export const USERS = Object.freeze({
   ROOT: '/admin/users',
   DETAIL: (id) => `/admin/users/${id}`,
@@ -33,10 +35,18 @@ export const REPORTS = Object.freeze({
   EXPORT: (id) => `/admin/reports/${id}/export`,
 });
 
+export const QUESTIONS = Object.freeze({
+  ROOT: '/admin/questions',
+  DETAIL: (id) => `/admin/questions/${id}`,
+  IMPORT: '/admin/questions/import',
+  EXPORT: '/admin/questions/export',
+});
+
 export const TESTS = Object.freeze({
   ROOT: '/tests',
   TEMPLATES: '/admin/tests/templates',
   TEMPLATE_DETAIL: (id) => `/admin/tests/templates/${id}`,
+  // HR-managed test lifecycle
   ASSIGNMENTS: '/hr/assignments',
   CONFIGS: '/hr/tests/configs',
   PATTERNS: '/hr/tests/patterns',
@@ -45,13 +55,7 @@ export const TESTS = Object.freeze({
   RESULTS_EXPORT: '/hr/results/export',
 });
 
-export const QUESTIONS = Object.freeze({
-  ROOT: '/admin/questions',
-  DETAIL: (id) => `/admin/questions/${id}`,
-  IMPORT: '/admin/questions/import',
-  EXPORT: '/admin/questions/export',
-});
-
+// Candidate endpoints
 export const CANDIDATE = Object.freeze({
   PROFILE: '/candidate/profile',
   RESUME: '/candidate/resume',
@@ -60,6 +64,7 @@ export const CANDIDATE = Object.freeze({
   INTERVIEW_DETAIL: (id) => `/candidate/interviews/${id}`,
 });
 
+// HR endpoints
 export const HR = Object.freeze({
   CANDIDATES_BULK: '/hr/candidates/bulk',
   EMAIL_TRIGGERS: '/hr/emails/triggers',
@@ -70,6 +75,7 @@ export const HR = Object.freeze({
   LIVE_WS: '/ws/hr/live',
 });
 
+// Chat endpoints
 export const CHAT = Object.freeze({
   THREADS: '/chat/threads',
   MESSAGES: (threadId) => `/chat/threads/${threadId}/messages`,

@@ -25,6 +25,16 @@ try {
   // ignore SSR or storage errors
 }
 
+// PUBLIC_INTERFACE
+export function normalizeApiError(e) {
+  /** Normalize errors thrown by request into a consistent shape */
+  if (!e) return { message: 'Unknown error' };
+  const status = e.status || undefined;
+  const data = e.data || undefined;
+  const message = e.message || data?.message || 'Request failed';
+  return { message, status, data };
+}
+
 /**
  * Internal request helper using fetch with baseURL and JSON defaults.
  */
@@ -53,12 +63,20 @@ async function request(path, { method = 'GET', headers = {}, body, ...rest } = {
     };
   }
 
-  const resp = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body: body ? JSON.stringify(body) : undefined,
-    ...rest,
-  });
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      body: body ? JSON.stringify(body) : undefined,
+      ...rest,
+    });
+  } catch (networkErr) {
+    const err = new Error('Network error');
+    err.status = 0;
+    err.data = { cause: String(networkErr) };
+    throw err;
+  }
 
   // 204 No Content
   if (resp.status === 204) {

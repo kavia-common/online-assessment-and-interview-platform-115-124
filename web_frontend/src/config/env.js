@@ -23,7 +23,8 @@ export function getEnv() {
     (apiBase.startsWith('https:')
       ? apiBase.replace('https', 'wss')
       : apiBase.replace('http', 'ws'));
-  const enableMocks = String(REACT_APP_ENABLE_MOCKS || 'true') === 'true';
+  // Per spec: default mocks to false
+  const enableMocks = String(REACT_APP_ENABLE_MOCKS || 'false') === 'true';
   const sentryDsn = REACT_APP_SENTRY_DSN || '';
   const buildEnv = REACT_APP_BUILD_ENV || 'development';
 

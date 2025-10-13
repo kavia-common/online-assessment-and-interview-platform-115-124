@@ -2,8 +2,10 @@ import { getEnv } from '../config/env';
 
 /**
  * PUBLIC_INTERFACE
- * createWS creates a WebSocket connection prefixed with the WS base URL.
- * Params are encoded as query string.
+ * createWS creates a resilient WebSocket connection prefixed with the WS base URL.
+ * - Builds URL from wsBase + path + query params
+ * - Auto-reconnects with exponential backoff (jitter)
+ * - Exposes sendSafe and closeGracefully helpers
  */
 export function createWS(path, params = {}) {
   const { wsBase } = getEnv();
@@ -17,59 +19,97 @@ export function createWS(path, params = {}) {
     return null;
   }
 
-  // Basic connect
-  let ws = new WebSocket(url);
-
-  // Basic reconnect stub
+  let ws = null;
   let closedByUser = false;
-  let retries = 0;
-  const maxRetries = 3;
+  let attempts = 0;
+  const maxAttempts = 10;
+  const listeners = {
+    message: [],
+    open: [],
+    close: [],
+    error: [],
+  };
 
-  function reconnect() {
-    if (closedByUser || retries >= maxRetries) return;
-    retries += 1;
+  const notify = (type, evt) => {
+    (listeners[type] || []).forEach((fn) => {
+      try { fn(evt); } catch { /* noop */ }
+    });
+  };
+
+  const connect = () => {
     try {
       ws = new WebSocket(url);
-    } catch {
-      // ignore
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('WS construct failed', e);
+      return;
     }
-  }
 
-  ws.onclose = (evt) => {
-    if (!closedByUser) {
-      setTimeout(reconnect, 500 * (retries + 1));
-    }
-    if (typeof ws._onclose === 'function') ws._onclose(evt);
+    ws.onopen = (evt) => {
+      attempts = 0;
+      notify('open', evt);
+    };
+    ws.onmessage = (evt) => notify('message', evt);
+    ws.onerror = (evt) => notify('error', evt);
+    ws.onclose = (evt) => {
+      notify('close', evt);
+      if (!closedByUser && attempts < maxAttempts) {
+        attempts += 1;
+        const backoff = Math.min(1000 * 2 ** attempts, 15000);
+        const jitter = Math.random() * 250;
+        setTimeout(connect, backoff + jitter);
+      }
+    };
   };
 
-  // Provide a close wrapper to avoid auto-reconnect
-  ws.closeGracefully = () => {
-    closedByUser = true;
-    try {
-      ws.close();
-    } catch {
-      /* noop */
-    }
+  connect();
+
+  const api = {
+    raw: () => ws,
+    // PUBLIC_INTERFACE
+    sendSafe(payload) {
+      /** Send JSON-serializable payload if socket is open. Queues are not persisted here. */
+      if (!ws || ws.readyState !== 1) return false;
+      try {
+        const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+        ws.send(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    // PUBLIC_INTERFACE
+    subscribe(type, handler) {
+      /** Subscribe to a WS event type: 'message' | 'open' | 'close' | 'error'. Returns unsubscribe. */
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push(handler);
+      return () => {
+        listeners[type] = (listeners[type] || []).filter((h) => h !== handler);
+      };
+    },
+    // PUBLIC_INTERFACE
+    closeGracefully() {
+      /** Close the socket and stop auto-reconnect. */
+      closedByUser = true;
+      try { ws && ws.close(); } catch { /* noop */ }
+    },
   };
 
-  return ws;
+  return api;
 }
 
 /**
  * PUBLIC_INTERFACE
  * useEmployeeChatSocket (adapter)
- * A lightweight adapter to send chat messages for employee chat context.
- * Not a React hook to avoid hook rules in services.
- *
- * Usage:
- *  const { socketConnected, sendMessage } = useEmployeeChatSocket({ room: 'hr', onMessage: cb });
+ * Lightweight adapter for employee chat.
  */
 export function useEmployeeChatSocket({ room, onMessage } = {}) {
-  let socket = createWS('/chat', { room });
-  let connected = !!socket;
+  const socket = createWS('/chat', { room });
+  let connected = false;
 
   if (socket) {
-    socket.onmessage = (event) => {
+    socket.subscribe('open', () => { connected = true; });
+    socket.subscribe('message', (event) => {
       try {
         const data = JSON.parse(event.data);
         onMessage && onMessage(data);
@@ -77,18 +117,12 @@ export function useEmployeeChatSocket({ room, onMessage } = {}) {
         // eslint-disable-next-line no-console
         console.warn('Non-JSON message received');
       }
-    };
+    });
   }
 
   const sendMessage = (targetRoom, text) => {
     if (!socket) return;
-    try {
-      const payload = { type: 'message', room: targetRoom || room, text };
-      socket.send(JSON.stringify(payload));
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to send WS message', e);
-    }
+    socket.sendSafe({ type: 'message', room: targetRoom || room, text });
   };
 
   return {

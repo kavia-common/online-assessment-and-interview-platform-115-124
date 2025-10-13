@@ -24,7 +24,7 @@ How env.js reads variables:
 - src/config/env.js defines getEnv() which reads process.env values and applies sane defaults:
   - apiBase defaults to http://localhost:4000
   - wsBase defaults to apiBase protocol converted to ws/wss
-  - enableMocks defaults to true
+  - enableMocks defaults to false (set to true only when you want to mock)
   - sentryDsn defaults to empty string
   - buildEnv defaults to development
 - apiClient and websocket utilities import getEnv() to determine behavior:
@@ -40,6 +40,14 @@ How env.js reads variables:
 Preview usage note:
 - The app will start at http://localhost:3000 by default.
 - Initial navigation defaults to /login. After login, role-based routes redirect based on user role.
+
+### Running against backend_api
+- Copy .env.example to .env
+- Set REACT_APP_API_BASE_URL to your backend_api HTTP base (e.g., http://localhost:4000)
+- Set REACT_APP_WS_BASE_URL to your backend_api WS base (e.g., ws://localhost:4000)
+- Set REACT_APP_ENABLE_MOCKS=false to disable in-frontend mocks
+- Start the frontend: npm start
+- Ensure backend_api is running and CORS/WS origins allow http://localhost:3000
 
 ## Architecture Summary
 
@@ -107,6 +115,7 @@ Preview usage note:
   - When REACT_APP_ENABLE_MOCKS is "true", returns mocked responses without calling backend.
 - WebSocket (src/services/websocket.js):
   - createWS(path, params) builds ws URL using wsBase and query string params.
+  - Auto-reconnects with exponential backoff and exposes sendSafe/subscribe helpers.
   - Logs a warning if wsBase is not configured and returns null.
 
 ## Assumed REST and WebSocket Endpoints
@@ -174,6 +183,5 @@ Server-side enforcement expectations:
 
 ## Notes
 
-- By default enableMocks is true; to integrate with a real backend set REACT_APP_ENABLE_MOCKS=false in .env and provide REACT_APP_API_BASE_URL and REACT_APP_WS_BASE_URL.
+- Set REACT_APP_ENABLE_MOCKS=false in .env to integrate with a real backend and provide REACT_APP_API_BASE_URL and REACT_APP_WS_BASE_URL.
 - Do not commit secrets. Use environment variables for DSNs and keys.
-
