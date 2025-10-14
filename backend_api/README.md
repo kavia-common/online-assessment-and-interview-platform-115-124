@@ -2,12 +2,56 @@
 
 FastAPI backend for the Online Assessment and Interview Platform.
 
-Quick start:
-- Create a virtualenv and install requirements.txt
-- Copy .env.example to .env and set DATABASE_URL and other values
-- Run Alembic migrations: alembic upgrade head
-- Seed dev data: python -m app.main (to verify) and python seed/seed_dev.py
-- Start dev server (not required by this task): uvicorn app.main:app --reload
+## Quick start
+1) Create a virtualenv and install requirements.txt
+2) Copy .env.example to .env and set DATABASE_URL and other values
+3) Run Alembic migrations
+4) Seed development data (optional)
+5) Start dev server (optional)
 
-CORS
-- Defaults to allow http://localhost:3000 via APP_CORS_ORIGINS
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env
+# Edit .env and set DATABASE_URL, JWT_SECRET, APP_CORS_ORIGINS, etc.
+
+# Run migrations (ensure DB is reachable)
+alembic upgrade head
+
+# Seed dev data
+python seed/seed_dev.py
+
+# Start dev server
+uvicorn app.main:app --reload --port 8000
+```
+
+## Environment
+- .env.example is provided with the following placeholders:
+  - DATABASE_URL
+  - JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+  - APP_CORS_ORIGINS
+  - STORAGE_BACKEND and storage provider config
+  - EMAIL SMTP configuration
+  - SITE_URL, BACKEND_BASE_URL
+
+## Alembic
+- alembic.ini configured to resolve script_location and URL is injected from .env via alembic/env.py.
+- Autogenerate targets `app.core.db.Base.metadata`.
+- Notable indexes:
+  - Proctor events: (session_id, occurred_at)
+  - Chat messages: (thread_id, created_at)
+- To create new migration:
+```bash
+alembic revision --autogenerate -m "your message"
+```
+
+## Seed Data
+- script: seed/seed_dev.py
+- Seeds roles (admin/hr/candidate/employee), sample users, two questions, one template, one assignment and attempt, proctor events and chat messages.
+- Default password for all dev users: "password"
+
+## Notes
+- Do not commit real secrets to the repository.
+- Ensure Postgres is running and DATABASE_URL is correct.
+- CORS defaults to allow http://localhost:3000 via APP_CORS_ORIGINS.

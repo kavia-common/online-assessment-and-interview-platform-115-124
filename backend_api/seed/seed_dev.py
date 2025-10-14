@@ -1,119 +1,135 @@
 """
-Seed development database with basic roles, an admin user, sample questions, a template, and one assignment.
-
-Usage:
-    - Ensure .env has DATABASE_URL configured and dependencies installed.
-    - Run as a module or with: python seed/seed_dev.py
+Seed minimal development data:
+- Roles: admin, hr, candidate, employee
+- Users for each role with default password 'password'
+- Questions: 1 MCQ, 1 Theory
+- Template with both questions
+- Assignment for candidate
+- Attempt in_progress with empty answers
+- Proctor events, Chat thread and messages
+Run:
+    python seed/seed_dev.py
+Requires:
+    - .env with DATABASE_URL
 """
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from datetime import datetime, timedelta
 from app.core.db import SessionLocal, Base, engine
-from app.core.security import get_password_hash
-from app.models.user import User, Role
-from app.models.question import Question, Option
-from app.models.template import Template, TemplateSection
-from app.models.assignment import TestAssignment
+from passlib.context import CryptContext
 
-def get_or_create_role(db: Session, name: str, description: str = "") -> Role:
-    role = db.scalar(select(Role).where(Role.name == name))
-    if role:
-        return role
-    role = Role(name=name, description=description)
-    db.add(role)
-    db.commit()
-    db.refresh(role)
-    return role
+from app.models.user import Role, User
+from app.models.question import Question, QuestionType
+from app.models.template import Template, template_questions
+from app.models.assignment import Assignment, AssignmentStatus
+from app.models.attempt import Attempt, AttemptStatus, Answer
+from app.models.proctor_event import ProctorEvent
+from app.models.chat import ChatThread, ChatMessage
 
-def get_or_create_user(db: Session, email: str, password: str, full_name: str, role: Role) -> User:
-    user = db.scalar(select(User).where(User.email == email))
-    if user:
-        return user
-    user = User(
-        email=email,
-        full_name=full_name,
-        is_active=True,
-        hashed_password=get_password_hash(password),
-        role_id=role.id,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def create_sample_questions(db: Session) -> list[Question]:
-    existing = db.scalars(select(Question)).all()
-    if existing:
-        return existing
-    q1 = Question(type="mcq", text="What is 2 + 2?", difficulty=1, tags="math")
-    q1.options = [
-        Option(text="3", is_correct=False),
-        Option(text="4", is_correct=True),
-        Option(text="5", is_correct=False),
-    ]
-    q2 = Question(type="theory", text="Explain polymorphism in OOP.", difficulty=2, tags="cs")
-    db.add_all([q1, q2])
-    db.commit()
-    return [q1, q2]
+def hash_password(pw: str) -> str:
+    return pwd_context.hash(pw)
 
-def create_template(db: Session, name: str = "General Aptitude Test") -> Template:
-    tmpl = db.scalar(select(Template).where(Template.name == name))
-    if tmpl:
-        return tmpl
-    tmpl = Template(name=name, description="Sample template", duration_minutes=30)
-    tmpl.sections = [
-        TemplateSection(title="MCQ Section", question_type="mcq", num_questions=1, marks_per_question=1),
-        TemplateSection(title="Theory Section", question_type="theory", num_questions=1, marks_per_question=5),
-    ]
-    db.add(tmpl)
+def get_or_create(db: Session, model, defaults=None, **kwargs):
+    instance = db.scalar(select(model).filter_by(**kwargs))
+    if instance:
+        return instance, False
+    params = dict(**kwargs)
+    if defaults:
+        params.update(defaults)
+    instance = model(**params)
+    db.add(instance)
     db.commit()
-    db.refresh(tmpl)
-    return tmpl
-
-def create_assignment(db: Session, candidate: User, template: Template) -> TestAssignment:
-    assignment = TestAssignment(
-        candidate_id=candidate.id,
-        template_id=template.id,
-        status="assigned",
-        scheduled_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(days=7),
-        created_at=datetime.utcnow(),
-    )
-    db.add(assignment)
-    db.commit()
-    db.refresh(assignment)
-    return assignment
+    db.refresh(instance)
+    return instance, True
 
 def main():
-    # Ensure tables exist (in case migrations not applied in dev)
+    # Ensure tables exist (for dev convenience)
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
         # Roles
-        admin_role = get_or_create_role(db, "admin", "Administrator")
-        hr_role = get_or_create_role(db, "hr", "Human Resources")
-        employee_role = get_or_create_role(db, "employee", "Employee")
-        candidate_role = get_or_create_role(db, "candidate", "Candidate")
+        admin_role, _ = get_or_create(db, Role, name="admin")
+        hr_role, _ = get_or_create(db, Role, name="hr")
+        candidate_role, _ = get_or_create(db, Role, name="candidate")
+        employee_role, _ = get_or_create(db, Role, name="employee")
 
-        # Admin user
-        admin = get_or_create_user(db, "admin@example.com", "admin123", "Admin User", admin_role)
+        # Users
+        admin, _ = get_or_create(db, User, email="admin@example.com", defaults={
+            "full_name": "Admin User", "hashed_password": hash_password("password"), "role_id": admin_role.id
+        })
+        hr, _ = get_or_create(db, User, email="hr@example.com", defaults={
+            "full_name": "HR User", "hashed_password": hash_password("password"), "role_id": hr_role.id
+        })
+        employee, _ = get_or_create(db, User, email="employee@example.com", defaults={
+            "full_name": "Employee User", "hashed_password": hash_password("password"), "role_id": employee_role.id
+        })
+        candidate, _ = get_or_create(db, User, email="candidate@example.com", defaults={
+            "full_name": "Candidate User", "hashed_password": hash_password("password"), "role_id": candidate_role.id
+        })
 
-        # Candidate user
-        candidate = get_or_create_user(db, "candidate@example.com", "candidate123", "Candidate One", candidate_role)
-
-        # Sample questions
-        create_sample_questions(db)
+        # Questions
+        q1, _ = get_or_create(db, Question, title="What is 2 + 2?", defaults={
+            "type": QuestionType.mcq, "content": "Select the correct answer",
+            "options": ["3", "4", "5", "22"], "answer_key": 1, "marks": 1, "tags": ["math", "easy"]
+        })
+        q2, _ = get_or_create(db, Question, title="Explain polymorphism.", defaults={
+            "type": QuestionType.theory, "content": "Provide a brief explanation of polymorphism in OOP.",
+            "options": None, "answer_key": None, "marks": 5, "tags": ["cs", "oop"]
+        })
 
         # Template
-        tmpl = create_template(db)
+        template, created_template = get_or_create(db, Template, name="Sample Test", defaults={
+            "description": "A test with 1 MCQ and 1 Theory",
+            "settings": {"duration_min": 20, "shuffle": True}
+        })
+        if created_template:
+            # Link questions with order
+            db.execute(template_questions.insert().values([
+                {"template_id": template.id, "question_id": q1.id, "order_index": 0},
+                {"template_id": template.id, "question_id": q2.id, "order_index": 1},
+            ]))
+            db.commit()
 
         # Assignment
-        create_assignment(db, candidate, tmpl)
+        assignment, _ = get_or_create(db, Assignment, template_id=template.id, candidate_id=candidate.id, defaults={
+            "assigned_by_id": hr.id, "reviewer_id": employee.id, "status": AssignmentStatus.assigned
+        })
 
-        print("Seed data inserted successfully.")
+        # Attempt
+        attempt, created_attempt = get_or_create(db, Attempt, assignment_id=assignment.id, candidate_id=candidate.id, defaults={
+            "status": AttemptStatus.in_progress,
+            "meta": {"browser": "Chrome", "os": "Linux"}
+        })
+        if created_attempt:
+            db.add_all([
+                Answer(attempt_id=attempt.id, question_id=q1.id, response=None, score=None),
+                Answer(attempt_id=attempt.id, question_id=q2.id, response=None, score=None),
+            ])
+            db.commit()
+
+        # Proctor events
+        db.add_all([
+            ProctorEvent(attempt_id=attempt.id, session_id="sess-123", event_type="focus", payload={"state": "blur"}),
+            ProctorEvent(attempt_id=attempt.id, session_id="sess-123", event_type="fullscreen", payload={"enabled": True}),
+        ])
+        db.commit()
+
+        # Chat thread and messages
+        thread, created_thread = get_or_create(db, ChatThread, channel="hr", owner_id=candidate.id)
+        if created_thread:
+            db.add_all([
+                ChatMessage(thread_id=thread.id, sender_id=candidate.id, content="Hello HR, I have a question."),
+                ChatMessage(thread_id=thread.id, sender_id=hr.id, content="Hi! How can I help you?"),
+            ])
+            db.commit()
+
+        print("Seed complete.")
+    except Exception as e:
+        db.rollback()
+        print("Seed failed:", e)
+        raise
     finally:
         db.close()
 
