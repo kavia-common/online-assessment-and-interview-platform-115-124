@@ -2,6 +2,28 @@
 
 FastAPI backend for the Online Assessment and Interview Platform.
 
+Routes summary:
+/health -> GET basic health
+/auth -> POST /login (stub), expand with /register,/refresh,/me as needed
+/admin -> admin stubs
+/hr -> GET /assignments, GET /results/export
+/candidate -> GET /profile
+/chat -> GET /threads, GET /threads/{id}/messages
+/events -> POST /, POST /bulk, GET /
+/files -> POST /upload
+/email -> POST /queue, GET /queue/{job_id}
+
+/ws endpoints:
+/ws/chat?room=<room>&token=<jwt> - chat adapter
+/ws/hr/live?token=<jwt> - HR live monitor
+
+CORS:
+- Allowed origins configured via APP_CORS_ORIGINS (.env), default http://localhost:3000
+
+Notes:
+- Token validation for websockets checks signature only (stub) and should be hardened.
+- Event logging table uses index (session_id, occurred_at) for efficient queries.
+
 ## Quick start
 1) Create a virtualenv and install requirements.txt
 2) Copy .env.example to .env and set DATABASE_URL and other values

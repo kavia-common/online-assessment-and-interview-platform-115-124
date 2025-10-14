@@ -42,6 +42,7 @@ openapi_tags = [
     {"name": "HR", "description": "Human Resources operations"},
     {"name": "Candidate", "description": "Candidate-facing endpoints"},
     {"name": "Chat", "description": "Chat threads and messages"},
+    {"name": "Events", "description": "Event logging and querying"},
     {"name": "WebSocket", "description": "Real-time connections"},
 ]
 
