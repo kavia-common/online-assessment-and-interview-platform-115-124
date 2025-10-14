@@ -1,6 +1,9 @@
 const baseURL = (typeof process !== 'undefined' && (process as any).env && (process as any).env.REACT_APP_API_BASE_URL) || '/api';
 
-// Very small wrapper to simulate a REST client.
+/**
+ * generic api utils
+ * Prefer using apiClient.js for authenticated REST calls.
+ */
 async function request(path: string, options: RequestInit = {}) {
   const url = baseURL.replace(/\/$/, '') + path;
   return fetch(url, {
@@ -35,3 +38,5 @@ export const apiClient = {
   /** Returns configured base URL */
   baseURL,
 };
+
+export default apiClient;

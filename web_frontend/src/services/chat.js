@@ -1,26 +1,30 @@
-import { apiClient } from './apiClient';
-import { CHAT } from './endpoints';
-
 /**
- * PUBLIC_INTERFACE
- * chatService - simple chat API wrapper.
+ * Chat service to load history via REST and stream realtime via WS.
  */
-export const chatService = {
-  // PUBLIC_INTERFACE
-  async listThreads() {
-    const res = await apiClient.get(CHAT.THREADS);
-    return res.data?.items || [];
-  },
+import { apiClient } from './apiClient';
+import { endpoints } from './endpoints';
+import { createChatWS } from './ws';
 
-  // PUBLIC_INTERFACE
-  async listMessages(threadId) {
-    const res = await apiClient.get(CHAT.MESSAGES(threadId));
-    return res.data?.items || [];
-  },
+let wsInstance = null;
 
-  // PUBLIC_INTERFACE
-  async sendMessage(threadId, payload) {
-    const res = await apiClient.post(CHAT.MESSAGES(threadId), payload);
-    return res.data;
-  },
-};
+// PUBLIC_INTERFACE
+export function getChatWS() {
+  if (!wsInstance) {
+    wsInstance = createChatWS();
+    wsInstance.connect();
+  }
+  return wsInstance;
+}
+
+// PUBLIC_INTERFACE
+export async function fetchChatHistory(channel = 'general') {
+  return apiClient.get(endpoints.chat.history(channel));
+}
+
+// PUBLIC_INTERFACE
+export function sendChatMessage(message, channel = 'general') {
+  const ws = getChatWS();
+  ws.send({ action: 'message', channel, message });
+}
+
+export default { getChatWS, fetchChatHistory, sendChatMessage };

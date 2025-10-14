@@ -7,3 +7,4 @@ export * from './reports';
 export * from './hr';
 export * from './chat';
 export * from './endpoints';
+export * from './ws';

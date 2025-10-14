@@ -1,43 +1,54 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
-import { Link } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
+import { AuthContext } from '../../context/AuthContext';
 
 /**
  * PUBLIC_INTERFACE
- * Login page - wires into AuthContext.login with placeholder auth.
+ * Login page integrating AuthContext.login; redirects based on role.
  */
 export default function Login() {
+  const { login, refreshProfile } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('candidate');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const redirectByRole = (role) => {
+    if (role === 'admin') navigate('/admin', { replace: true });
+    else if (role === 'hr') navigate('/hr', { replace: true });
+    else if (role === 'employee') navigate('/employee', { replace: true });
+    else navigate('/candidate', { replace: true });
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
+    setError('');
     try {
-      await login({ email, password, role });
-      // Redirect handled inside login by role
+      await login(email, password);
+      const me = await refreshProfile();
+      const role = me?.role || JSON.parse(localStorage.getItem('user_role') || 'null') || 'candidate';
+      redirectByRole(role);
     } catch (err) {
-      // In a real app, display error toast
-      console.error(err);
+      setError(err?.detail?.message || err?.message || 'Login failed');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div>
+    <div className="container" style={{ maxWidth: 420, margin: '40px auto' }}>
       <h2 style={{ marginTop: 0 }}>Sign in</h2>
-      <p style={{ color: 'var(--text-secondary)' }}>Use your credentials to access your dashboard.</p>
-      <form onSubmit={onSubmit} className="mt-16" style={{ display: 'grid', gap: 12 }}>
+      <p className="muted">Use your credentials to access your dashboard.</p>
+      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
         <input
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-color)' }}
+          style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-color, #e5e7eb)' }}
           required
         />
         <input
@@ -45,20 +56,11 @@ export default function Login() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-color)' }}
+          style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-color, #e5e7eb)' }}
           required
         />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-color)' }}
-        >
-          <option value="candidate">Candidate</option>
-          <option value="admin">Admin</option>
-          <option value="hr">HR</option>
-          <option value="employee">Employee</option>
-        </select>
-        <Button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</Button>
+        {error && <div className="error" style={{ color: 'var(--color-error)' }}>{error}</div>}
+        <Button type="submit" disabled={submitting}>{submitting ? 'Signing in...' : 'Sign in'}</Button>
         <div className="mt-16" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Link to="/auth/forgot-password">Forgot password?</Link>
           <Link to="/auth/register">Create account</Link>

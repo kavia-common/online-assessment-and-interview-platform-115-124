@@ -1,39 +1,115 @@
-import React from 'react';
+/**
+ * WebSocket client with token injection, auto-reconnect, and pub/sub.
+ */
+import env from '../config/env';
+import { wsEndpoints } from './endpoints';
 
-const WS_URL = (typeof process !== 'undefined' && (process as any).env && (process as any).env.REACT_APP_WS_URL) || 'ws://localhost:3000/ws';
+type MessageHandler = (data: any) => void;
 
-type Status = 'disconnected' | 'connecting' | 'connected';
+type ChannelConfig = {
+  url: string;
+  protocols?: string | string[];
+};
 
-let sharedStatus: Status = 'disconnected';
-const subscribers = new Set<(s: Status) => void>();
+class WSClient {
+  private socket: WebSocket | null = null;
+  private handlers: Set<MessageHandler> = new Set();
+  private url: string;
+  private reconnectAttempts = 0;
+  private maxReconnectDelay = 10000; // 10s
 
-function setStatus(s: Status) {
-  sharedStatus = s;
-  subscribers.forEach(cb => cb(s));
-}
+  constructor(cfg: ChannelConfig) {
+    this.url = cfg.url;
+  }
 
-function simulate() {
-  setStatus('connecting');
-  const t1 = setTimeout(() => setStatus('connected'), 800);
-  const t2 = setTimeout(() => setStatus('connected'), 2000);
-  return () => { clearTimeout(t1); clearTimeout(t2); };
+  private buildUrlWithToken(baseUrl: string) {
+    const token = localStorage.getItem('auth_token');
+    const u = new URL(baseUrl);
+    if (token) u.searchParams.set('token', token);
+    return u.toString();
+  }
+
+  connect() {
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    const url = this.buildUrlWithToken(this.url);
+    this.socket = new WebSocket(url);
+    this.socket.onopen = () => {
+      this.reconnectAttempts = 0;
+    };
+    this.socket.onmessage = (evt) => {
+      try {
+        const data = JSON.parse(evt.data);
+        this.handlers.forEach(h => h(data));
+      } catch {
+        this.handlers.forEach(h => h(evt.data));
+      }
+    };
+    this.socket.onclose = () => {
+      this.reconnect();
+    };
+    this.socket.onerror = () => {
+      try { this.socket?.close(); } catch {}
+    };
+  }
+
+  private reconnect() {
+    this.reconnectAttempts += 1;
+    const delay = Math.min(this.maxReconnectDelay, 500 * this.reconnectAttempts);
+    setTimeout(() => this.connect(), delay);
+  }
+
+  // PUBLIC_INTERFACE
+  subscribe(handler: MessageHandler) {
+    /** Subscribe to incoming WS messages. Returns unsubscribe fn. */
+    this.handlers.add(handler);
+    return () => this.handlers.delete(handler);
+  }
+
+  // PUBLIC_INTERFACE
+  send(data: any) {
+    /** Send a message to the server via WS. If not open, attempt reconnect. */
+    const payload = typeof data === 'string' ? data : JSON.stringify(data);
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(payload);
+    } else {
+      this.connect();
+      // bufferless simple retry after short delay
+      setTimeout(() => {
+        if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(payload);
+      }, 500);
+    }
+  }
+
+  // PUBLIC_INTERFACE
+  disconnect() {
+    /** Close socket and stop reconnecting. */
+    this.reconnectAttempts = 0;
+    if (this.socket) {
+      this.socket.onclose = null;
+      this.socket.close();
+    }
+    this.socket = null;
+  }
 }
 
 // PUBLIC_INTERFACE
-export function useWebsocketStatus() {
-  /**
-   * Provides a placeholder websocket connection status. In production, replace with actual WS connection management using WS_URL.
-   */
-  const [status, set] = React.useState<Status>(sharedStatus);
-
-  React.useEffect(() => {
-    subscribers.add(set);
-    const cleanup = simulate();
-    return () => {
-      subscribers.delete(set);
-      cleanup();
-    };
-  }, []);
-
-  return { status, WS_URL };
+export function createChatWS() {
+  const url = wsEndpoints.chat(env.WS_BASE_URL);
+  return new WSClient({ url });
 }
+
+// PUBLIC_INTERFACE
+export function createEventsWS() {
+  const url = wsEndpoints.events(env.WS_BASE_URL);
+  return new WSClient({ url });
+}
+
+// PUBLIC_INTERFACE
+export function createHRLiveWS() {
+  const url = wsEndpoints.hrLive(env.WS_BASE_URL);
+  return new WSClient({ url });
+}
+
+export default WSClient;

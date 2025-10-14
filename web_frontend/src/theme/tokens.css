@@ -1,79 +1,21 @@
+/* Ocean Professional Theme Tokens */
 :root {
-  /* Colors - Ocean Professional */
-  --color-primary: #2563EB;     /* Blue 600 */
-  --color-primary-700: #1D4ED8;
-  --color-primary-50: #EFF6FF;
+  --color-primary: #2563EB;
+  --color-secondary: #F59E0B;
+  --color-success: #F59E0B;
+  --color-error: #EF4444;
 
-  --color-secondary: #F59E0B;   /* Amber 500 */
-  --color-secondary-600: #D97706;
-  --color-secondary-50: #FFFBEB;
+  --bg-base: #f9fafb;
+  --bg-surface: #ffffff;
+  --text-base: #111827;
 
-  --color-error: #EF4444;       /* Red 500 */
-  --color-error-600: #DC2626;
-  --color-error-50: #FEF2F2;
-
-  --color-success: #10B981;     /* Emerald 500 */
-  --color-success-600: #059669;
-  --color-success-50: #ECFDF5;
-
-  --color-warning: #F59E0B;
-  --color-info: #0EA5E9;
-
-  --bg-body: #f9fafb; /* background */
-  --bg-surface: #ffffff; /* surface */
-  --surface: var(--bg-surface);
-  --surface-muted: #F9FAFB;
-  --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --border-color: var(--border);
-
-  --ring-color: rgba(37, 99, 235, 0.35);
-
-  --gradient-start: rgba(59, 130, 246, 0.1); /* from-blue-500/10 */
-  --gradient-end: #f9fafb; /* to-gray-50 */
-
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
-  --heading-weight: 600;
-  --body-weight: 400;
-
-  /* Spacing scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 40px;
-
-  /* Radius */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --radius-full: 999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 6px 12px rgba(0,0,0,0.08);
-  --shadow-lg: 0 15px 30px rgba(0,0,0,0.1);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 10px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,0.12);
 
-  /* Transitions */
-  --transition-fast: 120ms;
-  --transition-normal: 200ms;
-  --transition-slow: 320ms;
-
-  /* Component tokens */
-  --btn-height: 40px;
-  --btn-padding-x: 16px;
-  --input-height: 40px;
-  --card-padding: var(--space-6);
-  --card-radius: var(--radius-md);
-
-  /* Layout tokens */
-  --sidebar-width: 256px;
-  --topbar-height: 56px;
+  --gradient-soft: linear-gradient(180deg, rgba(59,130,246,0.1), #f9fafb);
 }

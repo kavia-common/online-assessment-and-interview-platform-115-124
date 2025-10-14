@@ -1,117 +1,105 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { setToken as apiSetToken } from '../services/apiClient';
-import { roleHome } from '../utils/roleRoutes';
+import env from '../config/env';
+import { apiClient } from '../services/apiClient';
+import { endpoints } from '../services/endpoints';
+
+export const AuthContext = createContext({
+  user: null,
+  token: null,
+  loading: true,
+  login: async (_email, _password) => {},
+  register: async (_form) => {},
+  logout: async () => {},
+  refreshProfile: async () => {},
+});
 
 // PUBLIC_INTERFACE
-export const AuthContext = createContext(null);
-
-/**
- * PUBLIC_INTERFACE
- * AuthProvider wraps the app and provides authentication state and helpers.
- * - Persists token and user in localStorage
- * - Hydrates on mount
- * - Exposes user, roles, token, isAuthenticated, login, logout
- */
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
+  /**
+   * AuthProvider manages login, logout, token storage, and user profile.
+   * It also listens for global logout events (triggered by 401 refresh failures).
+   */
   const [user, setUser] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [token, setToken] = useState(null);
-  const nav = useNavigate();
+  const [token, setToken] = useState(localStorage.getItem('auth_token'));
+  const [loading, setLoading] = useState(true);
 
-  // Hydrate from storage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('auth_state');
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (parsed?.token) {
-        setToken(parsed.token);
-        apiSetToken(parsed.token);
-      }
-      if (parsed?.user) {
-        setUser(parsed.user);
-      }
-      if (Array.isArray(parsed?.roles)) {
-        setRoles(parsed.roles);
-      }
-    } catch {
-      // ignore
+  const persistToken = useCallback((t) => {
+    if (t) {
+      localStorage.setItem('auth_token', t);
+    } else {
+      localStorage.removeItem('auth_token');
     }
+    setToken(t || null);
   }, []);
 
-  // Persist when changes
+  const loadMe = useCallback(async () => {
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const me = await apiClient.get(endpoints.auth.me());
+      setUser(me);
+    } catch {
+      // invalid token
+      persistToken(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, persistToken]);
+
   useEffect(() => {
-    try {
-      const data = JSON.stringify({ user, roles, token });
-      localStorage.setItem('auth_state', data);
-    } catch {
-      // ignore
-    }
-  }, [user, roles, token]);
-
-  const isAuthenticated = !!token;
-
-  // PUBLIC_INTERFACE
-  const login = useCallback(async (credentials) => {
-    /**
-     * PUBLIC_INTERFACE
-     * login accepts { email, password, role } and sets a fake token and user object.
-     * No real API calls in this step.
-     */
-    const { email, role = 'candidate' } = credentials || {};
-    // Generate a placeholder token
-    const fakeToken = `fake.${btoa(email || 'user')}.${
-      role
-    }.token`;
-    setToken(fakeToken);
-    apiSetToken(fakeToken);
-
-    const nextUser = {
-      id: 'u_' + Math.random().toString(36).slice(2, 8),
-      email,
-      name: email?.split('@')[0] || 'User',
-      role,
+    loadMe();
+    const onLogout = () => {
+      persistToken(null);
+      setUser(null);
     };
-    setUser(nextUser);
-    setRoles([role]);
+    window.addEventListener('auth:logout', onLogout);
+    return () => window.removeEventListener('auth:logout', onLogout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-    // Redirect by role
-    const home = roleHome[role] || '/';
-    nav(home, { replace: true });
+  const login = useCallback(async (email, password) => {
+    const res = await apiClient.post(endpoints.auth.login(), { email, password });
+    if (res?.access_token) {
+      persistToken(res.access_token);
+      await loadMe();
+    }
+    return res;
+  }, [persistToken, loadMe]);
 
-    return { ok: true, user: nextUser, token: fakeToken };
-  }, [nav]);
+  const register = useCallback(async (form) => {
+    const res = await apiClient.post(endpoints.auth.register(), form);
+    return res;
+  }, []);
 
-  // PUBLIC_INTERFACE
-  const logout = useCallback(() => {
-    /**
-     * PUBLIC_INTERFACE
-     * logout clears stored auth and navigates to login.
-     */
-    setUser(null);
-    setRoles([]);
-    setToken(null);
-    apiSetToken(null);
+  const logout = useCallback(async () => {
     try {
-      localStorage.removeItem('auth_state');
-      localStorage.removeItem('auth_token');
+      await apiClient.post(endpoints.auth.logout(), {});
     } catch {
       // ignore
     }
-    nav('/auth/login', { replace: true });
-  }, [nav]);
+    persistToken(null);
+    setUser(null);
+  }, [persistToken]);
 
-  const value = useMemo(
-    () => ({
-      user,
-      roles,
-      token,
-      isAuthenticated,
-      login,
-      logout,
-    }),
-    [user, roles, token, isAuthenticated, login, logout]
-  );
+  const refreshProfile = useCallback(async () => {
+    await loadMe();
+  }, [loadMe]);
+
+  const value = useMemo(() => ({
+    user,
+    token,
+    loading,
+    login,
+    register,
+    logout,
+    refreshProfile,
+  }), [user, token, loading, login, register, logout, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
+
+export default AuthContext;

@@ -1,100 +1,75 @@
-import React from 'react';
-import { apiClient } from '../services/api';
+/**
+ * Event logger hook buffers anti-cheat events and pushes to backend.
+ * When WS available, it also streams events for live proctoring.
+ */
+import { useCallback, useEffect, useRef } from 'react';
+import { apiClient } from '../services/apiClient';
+import { endpoints } from '../services/endpoints';
+import { createEventsWS } from '../services/ws';
+import env from '../config/env';
 
-type LoggerEvent = {
-  t: number; // timestamp
+type ProctorEvent = {
   type: string;
+  ts: number;
   meta?: Record<string, any>;
-  sessionId?: string;
-  userId?: string;
 };
 
-type UseEventLoggerOpts = {
-  attachGlobal?: boolean;
-};
+const FLUSH_INTERVAL = 3000;
+const MAX_BUFFER = 25;
 
 // PUBLIC_INTERFACE
-export function useEventLogger(opts: UseEventLoggerOpts = {}) {
-  /**
-   * Hook to capture and buffer events. Provides flush, startSession, endSession.
-   * If attachGlobal is true, global listeners for focus/blur/visibility/copy/paste/fullscreenchange are added.
-   */
-  const sessionRef = React.useRef<{ sessionId?: string; userId?: string }>({});
-  const bufferRef = React.useRef<LoggerEvent[]>([]);
-  const [bufferSize, setBufferSize] = React.useState(0);
-  const isFlushing = React.useRef(false);
+export function useEventLogger(sessionId?: string) {
+  /** Returns logEvent method that buffers and transmits events. */
+  const bufferRef = useRef<ProctorEvent[]>([]);
+  const wsRef = useRef<ReturnType<typeof createEventsWS> | null>(null);
 
-  const push = React.useCallback((type: string, meta?: Record<string, any>) => {
-    const evt: LoggerEvent = {
-      t: Date.now(),
-      type,
-      meta,
-      sessionId: sessionRef.current.sessionId,
-      userId: sessionRef.current.userId,
-    };
-    bufferRef.current.push(evt);
-    setBufferSize(bufferRef.current.length);
-  }, []);
-
-  const startSession = React.useCallback((sessionId: string, userId: string) => {
-    sessionRef.current = { sessionId, userId };
-    push('session_start', { sessionId, userId });
-  }, [push]);
-
-  const endSession = React.useCallback(() => {
-    push('session_end');
-    sessionRef.current = {};
-  }, [push]);
-
-  const flush = React.useCallback(async () => {
-    if (isFlushing.current) return;
-    if (bufferRef.current.length === 0) return;
-    isFlushing.current = true;
+  const flush = useCallback(async () => {
+    const buf = bufferRef.current;
+    if (!buf.length) return;
+    const toSend = buf.splice(0, buf.length);
     try {
-      const payload = bufferRef.current.slice();
-      // Stub transport: POST /events (ignore response)
-      await apiClient.post('/events', { events: payload });
-      bufferRef.current = [];
-      setBufferSize(0);
-    } catch (e) {
-      // basic retry/backoff placeholder
-      setTimeout(() => { isFlushing.current = false; }, 1000);
-      return;
+      await apiClient.post(endpoints.events.bulk(), {
+        session_id: sessionId || null,
+        events: toSend,
+      });
+    } catch {
+      // put back on failure (best-effort)
+      bufferRef.current.unshift(...toSend);
     }
-    isFlushing.current = false;
-  }, []);
+  }, [sessionId]);
 
-  React.useEffect(() => {
-    if (!opts.attachGlobal) return;
-    const onFocus = () => push('window_focus');
-    const onBlur = () => push('window_blur');
-    const onVisibility = () => push('visibility_change', { hidden: document.hidden });
-    const onCopy = () => push('copy');
-    const onPaste = () => push('paste');
-    const onFs = () => push('fullscreen_change', { fs: !!document.fullscreenElement });
+  const logEvent = useCallback((type: string, meta?: Record<string, any>) => {
+    const ev: ProctorEvent = { type, ts: Date.now(), meta: meta || {} };
+    bufferRef.current.push(ev);
+    // WS stream if connected
+    if (wsRef.current) {
+      try {
+        wsRef.current.send({ kind: 'proctor_event', sessionId, ...ev });
+      } catch {
+        // ignore
+      }
+    }
+    if (bufferRef.current.length >= MAX_BUFFER) {
+      flush();
+    }
+  }, [flush, sessionId]);
 
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('blur', onBlur);
-    document.addEventListener('visibilitychange', onVisibility);
-    document.addEventListener('copy', onCopy);
-    document.addEventListener('paste', onPaste);
-    document.addEventListener('fullscreenchange', onFs);
-
+  useEffect(() => {
+    const t = setInterval(flush, FLUSH_INTERVAL);
+    if (!wsRef.current) {
+      const ws = createEventsWS();
+      ws.connect();
+      wsRef.current = ws;
+    }
     return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('blur', onBlur);
-      document.removeEventListener('visibilitychange', onVisibility);
-      document.removeEventListener('copy', onCopy);
-      document.removeEventListener('paste', onPaste);
-      document.removeEventListener('fullscreenchange', onFs);
+      clearInterval(t);
+      flush();
+      wsRef.current?.disconnect();
+      wsRef.current = null;
     };
-  }, [opts.attachGlobal, push]);
+  }, [flush]);
 
-  return {
-    push,
-    flush,
-    startSession,
-    endSession,
-    bufferSize,
-  };
+  return { logEvent };
 }
+
+export default useEventLogger;

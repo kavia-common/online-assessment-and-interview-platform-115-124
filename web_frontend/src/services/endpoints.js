@@ -1,94 +1,86 @@
-import { getEnv } from '../config/env';
-
 /**
- * PUBLIC_INTERFACE
- * endpoints - Centralized API endpoint map using environment base URL.
- * NOTE: Keep only path segments here; apiClient prefixes apiBase for HTTP.
+ * Centralized REST endpoints aligned with backend FastAPI routes.
+ * Keeps all path segments in one place.
  */
-const { apiBase } = getEnv();
+const API_PREFIX = '/api/v1';
 
-/** Utility to resolve full URLs if ever needed in special cases. */
 // PUBLIC_INTERFACE
-export function withBase(path) {
-  /** Returns an absolute URL by prefixing the API base URL */
-  if (!path) return apiBase;
-  return path.startsWith('http') ? path : `${apiBase}${path}`;
-}
+export const endpoints = {
+  // health
+  health: {
+    liveness: () => `${API_PREFIX}/health/liveness`,
+    readiness: () => `${API_PREFIX}/health/readiness`,
+  },
 
-// Auth endpoints
-export const AUTH = Object.freeze({
-  LOGIN: '/auth/login',
-  LOGOUT: '/auth/logout',
-  REGISTER: '/auth/register',
-  REFRESH: '/auth/refresh',
-  PROFILE: '/auth/me',
-});
+  // auth
+  auth: {
+    login: () => `${API_PREFIX}/auth/login`,
+    register: () => `${API_PREFIX}/auth/register`,
+    me: () => `${API_PREFIX}/auth/me`,
+    refresh: () => `${API_PREFIX}/auth/refresh`,
+    logout: () => `${API_PREFIX}/auth/logout`,
+  },
 
-// Admin endpoints
-export const USERS = Object.freeze({
-  ROOT: '/admin/users',
-  DETAIL: (id) => `/admin/users/${id}`,
-});
+  // admin
+  admin: {
+    users: () => `${API_PREFIX}/admin/users`,
+    user: (id) => `${API_PREFIX}/admin/users/${id}`,
+    questions: () => `${API_PREFIX}/admin/questions`,
+    question: (id) => `${API_PREFIX}/admin/questions/${id}`,
+    templates: () => `${API_PREFIX}/admin/templates`,
+    template: (id) => `${API_PREFIX}/admin/templates/${id}`,
+    reports: () => `${API_PREFIX}/admin/reports`,
+    backup: () => `${API_PREFIX}/admin/backup`,
+    restore: () => `${API_PREFIX}/admin/restore`,
+  },
 
-export const REPORTS = Object.freeze({
-  ROOT: '/admin/reports',
-  EXPORT: (id) => `/admin/reports/${id}/export`,
-});
+  // hr
+  hr: {
+    dashboard: () => `${API_PREFIX}/hr/dashboard`,
+    config: () => `${API_PREFIX}/hr/config`,
+    uploadCandidates: () => `${API_PREFIX}/hr/candidates/upload`,
+    candidates: () => `${API_PREFIX}/hr/candidates`,
+    candidate: (id) => `${API_PREFIX}/hr/candidates/${id}`,
+    attempts: () => `${API_PREFIX}/hr/attempts`,
+    adjustTime: (attemptId) => `${API_PREFIX}/hr/attempts/${attemptId}/adjust-time`,
+    reappear: (attemptId) => `${API_PREFIX}/hr/attempts/${attemptId}/reappear`,
+    exportResults: () => `${API_PREFIX}/hr/results/export`,
+    assignEmployee: (candidateId) => `${API_PREFIX}/hr/candidates/${candidateId}/assign`,
+    events: () => `${API_PREFIX}/hr/events`,
+  },
 
-export const QUESTIONS = Object.freeze({
-  ROOT: '/admin/questions',
-  DETAIL: (id) => `/admin/questions/${id}`,
-  IMPORT: '/admin/questions/import',
-  EXPORT: '/admin/questions/export',
-});
+  // candidate
+  candidate: {
+    dashboard: () => `${API_PREFIX}/candidate/dashboard`,
+    profile: () => `${API_PREFIX}/candidate/profile`,
+    resume: () => `${API_PREFIX}/candidate/profile/resume`,
+    interviews: () => `${API_PREFIX}/candidate/interviews`,
+    tests: () => `${API_PREFIX}/candidate/tests`,
+    startTest: (testId) => `${API_PREFIX}/candidate/tests/${testId}/start`,
+    submitTest: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/submit`,
+    questions: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/questions`,
+    answer: (attemptId, questionId) =>
+      `${API_PREFIX}/candidate/attempts/${attemptId}/questions/${questionId}/answer`,
+  },
 
-export const TESTS = Object.freeze({
-  ROOT: '/tests',
-  TEMPLATES: '/admin/tests/templates',
-  TEMPLATE_DETAIL: (id) => `/admin/tests/templates/${id}`,
-  // HR-managed test lifecycle
-  ASSIGNMENTS: '/hr/assignments',
-  CONFIGS: '/hr/tests/configs',
-  PATTERNS: '/hr/tests/patterns',
-  ATTEMPT_ADJUST_TIME: (attemptId) => `/hr/attempts/${attemptId}/adjust-time`,
-  RESULTS: '/hr/results',
-  RESULTS_EXPORT: '/hr/results/export',
-});
+  // chat
+  chat: {
+    history: (channel = 'general') => `${API_PREFIX}/chat/history?channel=${encodeURIComponent(channel)}`,
+    send: () => `${API_PREFIX}/chat/send`,
+  },
 
-// Candidate endpoints
-export const CANDIDATE = Object.freeze({
-  PROFILE: '/candidate/profile',
-  RESUME: '/candidate/resume',
-  QUESTIONNAIRE: '/candidate/questionnaire',
-  INTERVIEWS: '/candidate/interviews',
-  INTERVIEW_DETAIL: (id) => `/candidate/interviews/${id}`,
-});
-
-// HR endpoints
-export const HR = Object.freeze({
-  CANDIDATES_BULK: '/hr/candidates/bulk',
-  EMAIL_TRIGGERS: '/hr/emails/triggers',
-  EMPLOYEES: '/hr/employees',
-  ASSIGN_TO_EMPLOYEE: '/hr/assign-to-employee',
-  REAPPEAR: '/hr/reappear',
-  REAPPEAR_DETAIL: (id) => `/hr/reappear/${id}`,
-  LIVE_WS: '/ws/hr/live',
-});
-
-// Chat endpoints
-export const CHAT = Object.freeze({
-  THREADS: '/chat/threads',
-  MESSAGES: (threadId) => `/chat/threads/${threadId}/messages`,
-});
-
-export default {
-  AUTH,
-  USERS,
-  REPORTS,
-  TESTS,
-  QUESTIONS,
-  CANDIDATE,
-  HR,
-  CHAT,
-  withBase,
+  // events/proctoring
+  events: {
+    log: () => `${API_PREFIX}/events`,
+    bulk: () => `${API_PREFIX}/events/bulk`,
+  },
 };
+
+// PUBLIC_INTERFACE
+export const wsEndpoints = {
+  chat: (base) => `${base}/ws/chat`,
+  events: (base) => `${base}/ws/events`,
+  hrLive: (base) => `${base}/ws/hr/live`,
+};
+
+export default endpoints;

@@ -1,123 +1,119 @@
-import { getEnv } from '../config/env';
-
 /**
- * Simple in-memory token accessor with fallback to localStorage.
- * AuthContext should keep this in sync by calling setToken on login/logout.
+ * Lightweight API client built on fetch with:
+ * - Base URL from env
+ * - Bearer token injection
+ * - 401 handling with refresh or logout
+ * - JSON parsing and error surfacing
  */
-let authToken = null;
+import env from '../config/env';
+import { endpoints } from './endpoints';
+
+let getToken = () => localStorage.getItem('auth_token');
+let setToken = (t) => localStorage.setItem('auth_token', t || '');
+let clearToken = () => localStorage.removeItem('auth_token');
+
+let refreshing = false;
+let pending = [];
 
 // PUBLIC_INTERFACE
-export function setToken(token) {
-  /** Set auth token to be attached on subsequent API calls. */
-  authToken = token || null;
-  if (token) {
-    try { localStorage.setItem('auth_token', token); } catch { /* noop */ }
-  } else {
-    try { localStorage.removeItem('auth_token'); } catch { /* noop */ }
-  }
+export function setAuthTokenProvider(providerFns) {
+  /** Set custom providers for token storage (optional) */
+  if (providerFns?.getToken) getToken = providerFns.getToken;
+  if (providerFns?.setToken) setToken = providerFns.setToken;
+  if (providerFns?.clearToken) clearToken = providerFns.clearToken;
 }
 
-// Attempt to hydrate token on initial import
-try {
-  const stored = localStorage.getItem('auth_token');
-  if (stored) authToken = stored;
-} catch {
-  // ignore SSR or storage errors
-}
-
-// PUBLIC_INTERFACE
-export function normalizeApiError(e) {
-  /** Normalize errors thrown by request into a consistent shape */
-  if (!e) return { message: 'Unknown error' };
-  const status = e.status || undefined;
-  const data = e.data || undefined;
-  const message = e.message || data?.message || 'Request failed';
-  return { message, status, data };
-}
-
-/**
- * Internal request helper using fetch with baseURL and JSON defaults.
- */
-async function request(path, { method = 'GET', headers = {}, body, ...rest } = {}) {
-  const { apiBase, enableMocks } = getEnv();
-  const url = path.startsWith('http') ? path : `${apiBase}${path}`;
-
-  const finalHeaders = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...headers,
-  };
-
-  if (authToken) {
-    finalHeaders['Authorization'] = `Bearer ${authToken}`;
+async function doRefresh() {
+  if (refreshing) {
+    return new Promise((resolve, reject) => pending.push({ resolve, reject }));
   }
-
-  // Placeholder mock behavior: do not actually call a backend during this step
-  if (enableMocks) {
-    // Return a basic mocked response structure with small latency
-    await new Promise((r) => setTimeout(r, 150));
-    return {
-      ok: true,
-      status: 200,
-      data: { success: true, path, method, body: body ? JSON.parse(body) : undefined },
-    };
-  }
-
-  let resp;
+  refreshing = true;
   try {
-    resp = await fetch(url, {
-      method,
-      headers: finalHeaders,
-      body: body ? JSON.stringify(body) : undefined,
-      ...rest,
+    const res = await fetch(`${env.API_BASE_URL}${endpoints.auth.refresh()}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
     });
-  } catch (networkErr) {
-    const err = new Error('Network error');
-    err.status = 0;
-    err.data = { cause: String(networkErr) };
+    if (!res.ok) throw new Error('Refresh failed');
+    const data = await res.json();
+    if (data?.access_token) {
+      setToken(data.access_token);
+      pending.forEach(p => p.resolve(data.access_token));
+      pending = [];
+      return data.access_token;
+    }
+    throw new Error('No token in refresh');
+  } catch (e) {
+    pending.forEach(p => p.reject(e));
+    pending = [];
+    clearToken();
+    return null;
+  } finally {
+    refreshing = false;
+  }
+}
+
+async function handle401AndRetry(input, init) {
+  const newToken = await doRefresh();
+  if (!newToken) {
+    // Allow app-level logout by dispatching an event
+    window.dispatchEvent(new CustomEvent('auth:logout'));
+    return Promise.reject({ status: 401, message: 'Unauthorized' });
+  }
+  const retryHeaders = new Headers(init?.headers || {});
+  retryHeaders.set('Authorization', `Bearer ${newToken}`);
+  return fetch(input, { ...init, headers: retryHeaders });
+}
+
+// PUBLIC_INTERFACE
+export async function apiFetch(path, options = {}) {
+  /** Primary fetch wrapper for REST API. */
+  const url = path.startsWith('http') ? path : `${env.API_BASE_URL}${path}`;
+  const headers = new Headers(options.headers || {});
+  headers.set('Accept', 'application/json');
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const token = getToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const init = { ...options, headers };
+
+  let res = await fetch(url, init);
+
+  if (res.status === 401) {
+    res = await handle401AndRetry(url, init);
+  }
+  if (!res.ok) {
+    let errorDetail = {};
+    try {
+      errorDetail = await res.json();
+    } catch {
+      // non-json error
+    }
+    const err = new Error(errorDetail?.detail || res.statusText || 'Request failed');
+    err.status = res.status;
+    err.detail = errorDetail;
     throw err;
   }
 
-  // 204 No Content
-  if (resp.status === 204) {
-    return { ok: true, status: 204, data: null };
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return res.json();
   }
-
-  let data = null;
-  try {
-    data = await resp.json();
-  } catch {
-    // Non-json
-  }
-
-  if (resp.status === 401) {
-    // Allow upper layers to react (e.g., logout)
-    const err = new Error('Unauthorized');
-    err.status = 401;
-    err.data = data;
-    throw err;
-  }
-
-  if (!resp.ok) {
-    const err = new Error(data?.message || 'Request failed');
-    err.status = resp.status;
-    err.data = data;
-    throw err;
-  }
-
-  return { ok: true, status: resp.status, data };
+  return res.text();
 }
 
 // PUBLIC_INTERFACE
 export const apiClient = {
-  /** GET JSON */
-  get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
-  /** POST JSON */
-  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
-  /** PUT JSON */
-  put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
-  /** PATCH JSON */
-  patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
-  /** DELETE JSON */
-  delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' }),
+  get: (path, init) => apiFetch(path, { ...init, method: 'GET' }),
+  post: (path, body, init) =>
+    apiFetch(path, { ...init, method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body || {}) }),
+  put: (path, body, init) =>
+    apiFetch(path, { ...init, method: 'PUT', body: JSON.stringify(body || {}) }),
+  patch: (path, body, init) =>
+    apiFetch(path, { ...init, method: 'PATCH', body: JSON.stringify(body || {}) }),
+  delete: (path, init) => apiFetch(path, { ...init, method: 'DELETE' }),
 };
+
+export default apiClient;
