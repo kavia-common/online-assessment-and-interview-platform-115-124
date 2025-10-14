@@ -90,3 +90,10 @@ alembic revision --autogenerate -m "your message"
 - Do not commit real secrets to the repository.
 - Ensure Postgres is running and DATABASE_URL is correct.
 - CORS defaults to allow http://localhost:3000 via APP_CORS_ORIGINS.
+
+## Environment Parity & CORS
+
+- BACKEND_BASE_URL should equal the frontend REACT_APP_API_BASE_URL.
+- WEBSOCKET_BASE_URL should equal the frontend REACT_APP_WS_BASE_URL.
+- APP_CORS_ORIGINS must include the frontend origin(s), e.g. http://localhost:3000.
+- For production, prefer https for BACKEND_BASE_URL and wss for WEBSOCKET_BASE_URL to avoid mixed-content issues.

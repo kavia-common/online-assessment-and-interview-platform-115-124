@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-This document maps frontend and backend environment variables and where they are used.
+This document maps frontend and backend environment variables, confirms parity, and highlights where they are used.
 
 ## Frontend (web_frontend)
 
@@ -14,9 +14,9 @@ Optional:
 - REACT_APP_SENTRY_DSN: Sentry DSN
 
 Usage:
-- src/config/env.js derives apiBase, wsBase, flags
-- src/services/apiClient.js uses apiBase
-- src/services/ws.ts uses wsBase
+- src/config/env.js provides { API_BASE_URL, WS_BASE_URL, ENABLE_MOCKS }
+- src/services/apiClient.js uses API_BASE_URL for REST calls
+- src/services/ws.ts uses WS_BASE_URL to build ws URLs
 - hooks/useEventLogger.ts uses REST + WS
 
 ## Backend (backend_api)
@@ -50,6 +50,44 @@ Email:
 WebSockets:
 - WS endpoints expect token=<jwt> query param
 
+## Environment Parity Matrix
+
+- REST API base
+  - Frontend: REACT_APP_API_BASE_URL
+  - Backend: BACKEND_BASE_URL
+  - Default Dev Value: http://localhost:8000
+  - Status: Aligned
+
+- WebSocket base
+  - Frontend: REACT_APP_WS_BASE_URL
+  - Backend: WEBSOCKET_BASE_URL
+  - Default Dev Value: ws://localhost:8000
+  - Status: Aligned
+
+- CORS origins
+  - Backend: APP_CORS_ORIGINS
+  - Must include: http://localhost:3000 (and any deployed frontend origins)
+  - Status: Configured by default
+
+- Database
+  - Backend: DATABASE_URL
+  - Required for API startup/migrations
+  - Status: Present in .env.example (must be set in local .env)
+
+- JWT/Secrets
+  - Backend: JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+  - Status: Present in .env.example (must be set securely in non-dev)
+
+- Optional subsystems
+  - Storage: STORAGE_BACKEND + provider-specific
+  - Exports: EXPORTS_DIR
+  - Email: EMAIL_* (SMTP)
+  - Status: Provided as optional; required only if features are used
+
+- Mixed-content (http/ws vs https/wss)
+  - Guidance: Use https + wss in production; in dev http + ws is fine
+  - Status: Documented; ensure matching schemes
+
 ## Alignment Checklist
 
 - REACT_APP_API_BASE_URL == BACKEND_BASE_URL
@@ -57,3 +95,4 @@ WebSockets:
 - APP_CORS_ORIGINS includes the frontend origin
 - Storage and exports paths exist and are writable
 - Email configured if email features are tested
+- Protocols match (http<->ws, https<->wss) to avoid mixed-content issues

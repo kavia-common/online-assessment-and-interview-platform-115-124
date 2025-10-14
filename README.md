@@ -26,23 +26,50 @@ npm install
 npm start
 ```
 
-## URL Alignment
+## Environment Matrix (Dev Defaults)
 
 - REST API base:
-  - Backend BACKEND_BASE_URL -> http://localhost:8000
-  - Frontend REACT_APP_API_BASE_URL -> http://localhost:8000
+  - Backend BACKEND_BASE_URL: http://localhost:8000
+  - Frontend REACT_APP_API_BASE_URL: http://localhost:8000
 
 - WebSocket base:
-  - Backend WEBSOCKET_BASE_URL -> ws://localhost:8000
-  - Frontend REACT_APP_WS_BASE_URL -> ws://localhost:8000
+  - Backend WEBSOCKET_BASE_URL: ws://localhost:8000
+  - Frontend REACT_APP_WS_BASE_URL: ws://localhost:8000
 
 - CORS:
   - Backend APP_CORS_ORIGINS must include http://localhost:3000
 
-## Validate Flows
+- Database:
+  - Backend DATABASE_URL must point to a reachable DB (e.g., Postgres)
+
+- JWT/Secrets:
+  - Backend JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+
+- Optional:
+  - Storage: STORAGE_BACKEND=local|s3 (+ LOCAL_* or S3_*)
+  - Exports directory: EXPORTS_DIR
+  - Email: EMAIL_* (SMTP)
+  - Frontend flags: REACT_APP_ENABLE_MOCKS, REACT_APP_BUILD_ENV, REACT_APP_SENTRY_DSN
+
+Protocol guidance:
+- Use http + ws in dev; use https + wss in production to avoid mixed-content issues.
+
+See ENVIRONMENT.md for full mapping and details.
+
+## E2E Validation
+
+Key flows to validate end-to-end:
 
 - Auth and role redirects (login -> role home)
 - Anti-cheat events (bulk REST + HR live WS)
 - Chat (history REST + chat WS)
 - File uploads (resume/profile)
 - Exports (reports/results)
+
+Use VALIDATION_CHECKLIST.md to track pass/fail and blockers.
+
+## Preview/Ports
+
+- Frontend dev server: http://localhost:3000
+- Backend dev server: http://localhost:8000 (WS: ws://localhost:8000)
+- Ensure APP_CORS_ORIGINS includes http://localhost:3000 and that the frontend .env points to the backend URLs above.

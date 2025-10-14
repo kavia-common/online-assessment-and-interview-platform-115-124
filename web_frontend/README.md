@@ -116,6 +116,12 @@ WebSocket Security:
 CORS:
 - [ ] APP_CORS_ORIGINS includes http://localhost:3000 (and production origins)
 
+Run Notes (Dev):
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000 (WS: ws://localhost:8000)
+- Ensure .env values match the backend (see ENVIRONMENT.md for matrix)
+- Avoid mixed-content by pairing http+ws (dev) or https+wss (prod)
+
 ## Missing or Optional Variables to Confirm
 
 Backend:
