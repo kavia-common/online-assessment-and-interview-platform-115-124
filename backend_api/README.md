@@ -36,7 +36,13 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# Edit .env and set DATABASE_URL, JWT_SECRET, APP_CORS_ORIGINS, etc.
+# Edit .env and set:
+# - DATABASE_URL
+# - JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+# - APP_CORS_ORIGINS (e.g., http://localhost:3000)
+# - BACKEND_BASE_URL (e.g., http://localhost:8000)
+# - WEBSOCKET_BASE_URL (e.g., ws://localhost:8000)
+# - SITE_URL (e.g., http://localhost:3000)
 
 # Run migrations (ensure DB is reachable)
 alembic upgrade head
@@ -45,7 +51,7 @@ alembic upgrade head
 python seed/seed_dev.py
 
 # Start dev server
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Environment
@@ -53,9 +59,16 @@ uvicorn app.main:app --reload --port 8000
   - DATABASE_URL
   - JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
   - APP_CORS_ORIGINS
+  - BACKEND_BASE_URL, WEBSOCKET_BASE_URL, SITE_URL
   - STORAGE_BACKEND and storage provider config
   - EMAIL SMTP configuration
-  - SITE_URL, BACKEND_BASE_URL
+  - EXPORTS_DIR
+
+Alignment with frontend:
+- The frontend uses:
+  - REACT_APP_API_BASE_URL -> should point to BACKEND_BASE_URL (e.g., http://localhost:8000)
+  - REACT_APP_WS_BASE_URL -> should point to WEBSOCKET_BASE_URL (e.g., ws://localhost:8000)
+- Ensure APP_CORS_ORIGINS includes the frontend origin (e.g., http://localhost:3000)
 
 ## Alembic
 - alembic.ini configured to resolve script_location and URL is injected from .env via alembic/env.py.
