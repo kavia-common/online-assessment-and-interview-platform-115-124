@@ -6,5 +6,5 @@ export * from './users';
 export * from './reports';
 export * from './hr';
 export * from './chat';
-export * from './endpoints';
+export { endpoints } from './endpoints';
 export * from './ws';

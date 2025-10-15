@@ -1,8 +1,8 @@
 /**
- * Centralized REST endpoints aligned with backend FastAPI routes.
- * Keeps all path segments in one place.
+ * Centralized REST endpoints aligned with backend FastAPI routes under /api/v1.
+ * All items are functions to allow safe concatenation or query construction.
  */
-const API_PREFIX = '/api/v1';
+export const API_PREFIX = '/api/v1';
 
 // PUBLIC_INTERFACE
 export const endpoints = {
@@ -21,58 +21,43 @@ export const endpoints = {
     logout: () => `${API_PREFIX}/auth/logout`,
   },
 
-  // admin
-  admin: {
-    users: () => `${API_PREFIX}/admin/users`,
-    user: (id) => `${API_PREFIX}/admin/users/${id}`,
-    questions: () => `${API_PREFIX}/admin/questions`,
-    question: (id) => `${API_PREFIX}/admin/questions/${id}`,
-    templates: () => `${API_PREFIX}/admin/templates`,
-    template: (id) => `${API_PREFIX}/admin/templates/${id}`,
-    reports: () => `${API_PREFIX}/admin/reports`,
-    backup: () => `${API_PREFIX}/admin/backup`,
-    restore: () => `${API_PREFIX}/admin/restore`,
-  },
-
   // hr
   hr: {
-    dashboard: () => `${API_PREFIX}/hr/dashboard`,
     config: () => `${API_PREFIX}/hr/config`,
-    uploadCandidates: () => `${API_PREFIX}/hr/candidates/upload`,
-    candidates: () => `${API_PREFIX}/hr/candidates`,
-    candidate: (id) => `${API_PREFIX}/hr/candidates/${id}`,
-    attempts: () => `${API_PREFIX}/hr/attempts`,
+    results: () => `${API_PREFIX}/hr/results`,
+    export: () => `${API_PREFIX}/hr/export`,
     adjustTime: (attemptId) => `${API_PREFIX}/hr/attempts/${attemptId}/adjust-time`,
-    reappear: (attemptId) => `${API_PREFIX}/hr/attempts/${attemptId}/reappear`,
-    exportResults: () => `${API_PREFIX}/hr/results/export`,
-    assignEmployee: (candidateId) => `${API_PREFIX}/hr/candidates/${candidateId}/assign`,
-    events: () => `${API_PREFIX}/hr/events`,
+    reappear: (candidateId) => `${API_PREFIX}/hr/candidates/${candidateId}/reappear`,
+    subscribe: () => `${API_PREFIX}/hr/monitor/subscribe`,
+    unsubscribe: () => `${API_PREFIX}/hr/monitor/unsubscribe`,
   },
 
   // candidate
   candidate: {
-    dashboard: () => `${API_PREFIX}/candidate/dashboard`,
     profile: () => `${API_PREFIX}/candidate/profile`,
-    resume: () => `${API_PREFIX}/candidate/profile/resume`,
-    interviews: () => `${API_PREFIX}/candidate/interviews`,
-    tests: () => `${API_PREFIX}/candidate/tests`,
-    startTest: (testId) => `${API_PREFIX}/candidate/tests/${testId}/start`,
-    submitTest: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/submit`,
-    questions: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/questions`,
-    answer: (attemptId, questionId) =>
-      `${API_PREFIX}/candidate/attempts/${attemptId}/questions/${questionId}/answer`,
+    attempts: () => `${API_PREFIX}/candidate/attempts`,
+    startTest: (templateId) => `${API_PREFIX}/candidate/tests/${templateId}/start`,
+    submitAnswer: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/answer`,
+    finishAttempt: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/finish`,
+    heartbeat: (attemptId) => `${API_PREFIX}/candidate/attempts/${attemptId}/heartbeat`,
   },
 
   // chat
   chat: {
-    history: (channel = 'general') => `${API_PREFIX}/chat/history?channel=${encodeURIComponent(channel)}`,
-    send: () => `${API_PREFIX}/chat/send`,
+    messages: () => `${API_PREFIX}/chat/messages`,
+    historyWith: (withUserId) => `${API_PREFIX}/chat/history/${withUserId}`,
   },
 
   // events/proctoring
   events: {
     log: () => `${API_PREFIX}/events`,
     bulk: () => `${API_PREFIX}/events/bulk`,
+  },
+
+  // files
+  files: {
+    upload: () => `${API_PREFIX}/files/upload`,
+    download: (id) => `${API_PREFIX}/files/${id}`,
   },
 };
 

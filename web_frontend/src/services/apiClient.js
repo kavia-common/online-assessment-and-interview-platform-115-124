@@ -8,9 +8,17 @@
 import env from '../config/env';
 import { endpoints } from './endpoints';
 
-let getToken = () => localStorage.getItem('auth_token');
-let setToken = (t) => localStorage.setItem('auth_token', t || '');
-let clearToken = () => localStorage.removeItem('auth_token');
+let getToken = () => {
+  try { return localStorage.getItem('auth_token') || localStorage.getItem('token'); } catch { return null; }
+};
+let setToken = (t) => { try {
+  localStorage.setItem('auth_token', t || '');
+  localStorage.setItem('token', t || '');
+} catch {} };
+let clearToken = () => { try {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('token');
+} catch {} };
 
 let refreshing = false;
 let pending = [];
@@ -22,6 +30,9 @@ export function setAuthTokenProvider(providerFns) {
   if (providerFns?.setToken) setToken = providerFns.setToken;
   if (providerFns?.clearToken) clearToken = providerFns.clearToken;
 }
+
+// PUBLIC_INTERFACE
+export const getStoredToken = () => getToken();
 
 async function doRefresh() {
   if (refreshing) {
@@ -57,7 +68,7 @@ async function handle401AndRetry(input, init) {
   const newToken = await doRefresh();
   if (!newToken) {
     // Allow app-level logout by dispatching an event
-    window.dispatchEvent(new CustomEvent('auth:logout'));
+    try { window.dispatchEvent(new CustomEvent('auth:logout')); } catch {}
     return Promise.reject({ status: 401, message: 'Unauthorized' });
   }
   const retryHeaders = new Headers(init?.headers || {});
@@ -105,12 +116,15 @@ export async function apiFetch(path, options = {}) {
 }
 
 // PUBLIC_INTERFACE
+export const withBase = (p) => `${env.API_BASE_URL}${p}`;
+
+// PUBLIC_INTERFACE
 export const apiClient = {
   get: (path, init) => apiFetch(path, { ...init, method: 'GET' }),
   post: (path, body, init) =>
     apiFetch(path, { ...init, method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body || {}) }),
   put: (path, body, init) =>
-    apiFetch(path, { ...init, method: 'PUT', body: JSON.stringify(body || {}) }),
+    apiFetch(path, { ...init, method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body || {}) }),
   patch: (path, body, init) =>
     apiFetch(path, { ...init, method: 'PATCH', body: JSON.stringify(body || {}) }),
   delete: (path, init) => apiFetch(path, { ...init, method: 'DELETE' }),

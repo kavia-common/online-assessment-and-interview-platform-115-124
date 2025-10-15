@@ -1,5 +1,4 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import env from '../config/env';
 import { apiClient } from '../services/apiClient';
 import { endpoints } from '../services/endpoints';
 
@@ -20,15 +19,21 @@ export const AuthProvider = ({ children }) => {
    * It also listens for global logout events (triggered by 401 refresh failures).
    */
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('auth_token'));
+  const [token, setToken] = useState(() => {
+    try { return localStorage.getItem('auth_token') || localStorage.getItem('token'); } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
 
   const persistToken = useCallback((t) => {
-    if (t) {
-      localStorage.setItem('auth_token', t);
-    } else {
-      localStorage.removeItem('auth_token');
-    }
+    try {
+      if (t) {
+        localStorage.setItem('auth_token', t);
+        localStorage.setItem('token', t);
+      } else {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
+      }
+    } catch {}
     setToken(t || null);
   }, []);
 
@@ -63,8 +68,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     const res = await apiClient.post(endpoints.auth.login(), { email, password });
-    if (res?.access_token) {
-      persistToken(res.access_token);
+    const accessToken = res?.access_token || res?.token;
+    if (accessToken) {
+      persistToken(accessToken);
       await loadMe();
     }
     return res;
@@ -89,15 +95,19 @@ export const AuthProvider = ({ children }) => {
     await loadMe();
   }, [loadMe]);
 
+  const role = user?.role || (Array.isArray(user?.roles) ? user.roles[0] : undefined) || 'candidate';
   const value = useMemo(() => ({
     user,
     token,
+    role,
     loading,
     login,
     register,
     logout,
     refreshProfile,
-  }), [user, token, loading, login, register, logout, refreshProfile]);
+    hasRole: (r) => r === role || (Array.isArray(user?.roles) && user.roles.includes(r)),
+    isAuthenticated: !!user,
+  }), [user, token, role, loading, login, register, logout, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

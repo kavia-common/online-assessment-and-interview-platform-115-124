@@ -1,5 +1,5 @@
 /**
- * WebSocket client with token injection, auto-reconnect, and pub/sub.
+ * WebSocket client with token injection, auto-reconnect, and simple pub/sub.
  */
 import env from '../config/env';
 import { wsEndpoints } from './endpoints';
@@ -8,7 +8,6 @@ type MessageHandler = (data: any) => void;
 
 type ChannelConfig = {
   url: string;
-  protocols?: string | string[];
 };
 
 class WSClient {
@@ -17,13 +16,16 @@ class WSClient {
   private url: string;
   private reconnectAttempts = 0;
   private maxReconnectDelay = 10000; // 10s
+  private closedManually = false;
 
   constructor(cfg: ChannelConfig) {
     this.url = cfg.url;
   }
 
   private buildUrlWithToken(baseUrl: string) {
-    const token = localStorage.getItem('auth_token');
+    const token = (() => {
+      try { return localStorage.getItem('auth_token') || localStorage.getItem('token'); } catch { return null; }
+    })();
     const u = new URL(baseUrl);
     if (token) u.searchParams.set('token', token);
     return u.toString();
@@ -33,6 +35,7 @@ class WSClient {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
+    this.closedManually = false;
     const url = this.buildUrlWithToken(this.url);
     this.socket = new WebSocket(url);
     this.socket.onopen = () => {
@@ -47,7 +50,7 @@ class WSClient {
       }
     };
     this.socket.onclose = () => {
-      this.reconnect();
+      if (!this.closedManually) this.reconnect();
     };
     this.socket.onerror = () => {
       try { this.socket?.close(); } catch {}
@@ -75,7 +78,6 @@ class WSClient {
       this.socket.send(payload);
     } else {
       this.connect();
-      // bufferless simple retry after short delay
       setTimeout(() => {
         if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(payload);
       }, 500);
@@ -86,9 +88,10 @@ class WSClient {
   disconnect() {
     /** Close socket and stop reconnecting. */
     this.reconnectAttempts = 0;
+    this.closedManually = true;
     if (this.socket) {
-      this.socket.onclose = null;
-      this.socket.close();
+      try { this.socket.onclose = null; } catch {}
+      try { this.socket.close(); } catch {}
     }
     this.socket = null;
   }
@@ -97,19 +100,31 @@ class WSClient {
 // PUBLIC_INTERFACE
 export function createChatWS() {
   const url = wsEndpoints.chat(env.WS_BASE_URL);
-  return new WSClient({ url });
+  const ws = new WSClient({ url });
+  ws.connect();
+  return ws;
 }
 
 // PUBLIC_INTERFACE
 export function createEventsWS() {
   const url = wsEndpoints.events(env.WS_BASE_URL);
-  return new WSClient({ url });
+  const ws = new WSClient({ url });
+  ws.connect();
+  return ws;
 }
 
 // PUBLIC_INTERFACE
 export function createHRLiveWS() {
   const url = wsEndpoints.hrLive(env.WS_BASE_URL);
-  return new WSClient({ url });
+  const ws = new WSClient({ url });
+  ws.connect();
+  return ws;
+}
+
+// PUBLIC_INTERFACE
+export function useWebsocketStatus() {
+  // simple mock status hook to avoid unused re-exports; could be wired to WS state
+  return { status: 'connected' as const };
 }
 
 export default WSClient;

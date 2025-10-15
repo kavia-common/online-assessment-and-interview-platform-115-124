@@ -1,75 +1,70 @@
-/**
- * Event logger hook buffers anti-cheat events and pushes to backend.
- * When WS available, it also streams events for live proctoring.
- */
-import { useCallback, useEffect, useRef } from 'react';
-import { apiClient } from '../services/apiClient';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import apiClient from '../services/apiClient';
 import { endpoints } from '../services/endpoints';
-import { createEventsWS } from '../services/ws';
-import env from '../config/env';
+import { createHRLiveWS } from '../services/ws';
 
-type ProctorEvent = {
-  type: string;
-  ts: number;
-  meta?: Record<string, any>;
+type EventPayload = Record<string, any>;
+
+type LoggerOptions = {
+  sessionId?: string;
+  enableWSStream?: boolean;
 };
 
-const FLUSH_INTERVAL = 3000;
-const MAX_BUFFER = 25;
+const MAX_BUFFER = 50;
+const FLUSH_INTERVAL_MS = 3000;
 
 // PUBLIC_INTERFACE
-export function useEventLogger(sessionId?: string) {
-  /** Returns logEvent method that buffers and transmits events. */
-  const bufferRef = useRef<ProctorEvent[]>([]);
-  const wsRef = useRef<ReturnType<typeof createEventsWS> | null>(null);
+export default function useEventLogger(options: LoggerOptions = {}) {
+  const { sessionId, enableWSStream = true } = options;
+  const bufferRef = useRef<any[]>([]);
+  const timerRef = useRef<any>(null);
+  const wsRef = useRef<ReturnType<typeof createHRLiveWS> | null>(null);
+
+  const ensureWS = useCallback(() => {
+    if (!enableWSStream) return;
+    if (wsRef.current) return;
+    wsRef.current = createHRLiveWS();
+  }, [enableWSStream]);
 
   const flush = useCallback(async () => {
-    const buf = bufferRef.current;
-    if (!buf.length) return;
-    const toSend = buf.splice(0, buf.length);
+    if (!bufferRef.current.length) return;
+    const events = bufferRef.current.splice(0, bufferRef.current.length);
     try {
-      await apiClient.post(endpoints.events.bulk(), {
-        session_id: sessionId || null,
-        events: toSend,
-      });
-    } catch {
-      // put back on failure (best-effort)
-      bufferRef.current.unshift(...toSend);
+      await apiClient.post(endpoints.events.bulk(), { sessionId, events });
+    } catch (e) {
+      // If failed, requeue once to avoid losing data completely
+      bufferRef.current.unshift(...events);
     }
   }, [sessionId]);
 
-  const logEvent = useCallback((type: string, meta?: Record<string, any>) => {
-    const ev: ProctorEvent = { type, ts: Date.now(), meta: meta || {} };
-    bufferRef.current.push(ev);
-    // WS stream if connected
-    if (wsRef.current) {
-      try {
-        wsRef.current.send({ kind: 'proctor_event', sessionId, ...ev });
-      } catch {
-        // ignore
-      }
-    }
-    if (bufferRef.current.length >= MAX_BUFFER) {
-      flush();
-    }
-  }, [flush, sessionId]);
-
   useEffect(() => {
-    const t = setInterval(flush, FLUSH_INTERVAL);
-    if (!wsRef.current) {
-      const ws = createEventsWS();
-      ws.connect();
-      wsRef.current = ws;
-    }
+    ensureWS();
+    timerRef.current = setInterval(flush, FLUSH_INTERVAL_MS);
     return () => {
-      clearInterval(t);
+      clearInterval(timerRef.current);
       flush();
       wsRef.current?.disconnect();
       wsRef.current = null;
     };
-  }, [flush]);
+  }, [flush, ensureWS]);
 
-  return { logEvent };
+  const log = useCallback((type: string, payload: EventPayload = {}) => {
+    const evt = { type, payload, ts: Date.now(), sessionId };
+    bufferRef.current.push(evt);
+    try {
+      wsRef.current?.send({ kind: 'proctor_event', data: evt });
+    } catch {}
+    if (bufferRef.current.length >= MAX_BUFFER) {
+      flush();
+    }
+  }, [sessionId, flush]);
+
+  return useMemo(() => ({ log, flush }), [log, flush]);
 }
 
-export default useEventLogger;
+// PUBLIC_INTERFACE
+export const useEventLogger = (...args: any[]) => {
+  // Backward-compatible named export
+  // @ts-ignore
+  return (useEventLogger as any)(...args);
+};

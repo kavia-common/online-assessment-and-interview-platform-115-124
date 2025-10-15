@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createHRLiveWS } from '../services/ws';
 
 type LiveEvent = {
@@ -11,18 +11,16 @@ type LiveEvent = {
 };
 
 // PUBLIC_INTERFACE
-export function useHRLiveMonitor() {
-  /** Subscribes to HR live WS and returns list of recent events. */
+export default function useHRLiveMonitor() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const wsRef = useRef<ReturnType<typeof createHRLiveWS> | null>(null);
 
   useEffect(() => {
     const ws = createHRLiveWS();
-    ws.connect();
     wsRef.current = ws;
     const unsub = ws.subscribe((msg: any) => {
       const ev = (msg && msg.type) ? msg : { type: 'message', ts: Date.now(), meta: msg };
-      setEvents((prev) => [ev as LiveEvent, ...prev].slice(0, 200));
+      setEvents((prev) => [ev as LiveEvent, ...prev].slice(0, 500));
     });
 
     return () => {
@@ -32,7 +30,16 @@ export function useHRLiveMonitor() {
     };
   }, []);
 
-  return { events };
+  const api = useMemo(() => ({
+    clear: () => setEvents([]),
+  }), []);
+
+  return { events, ...api };
 }
 
-export default useHRLiveMonitor;
+// PUBLIC_INTERFACE
+export const useHRLiveMonitor = (...args: any[]) => {
+  // Backward-compatible named export
+  // @ts-ignore
+  return (useHRLiveMonitor as any)(...args);
+};

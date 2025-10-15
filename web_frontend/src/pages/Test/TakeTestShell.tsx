@@ -1,82 +1,78 @@
 import React from 'react';
-import Stepper from '../../components/common/Stepper';
-import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen';
-import { formatMMSS } from '../../utils/time';
-import { useEventLogger } from '../../hooks/useEventLogger';
-import { useAuth } from '../../hooks/useAuth';
-import { useWebsocketStatus } from '../../services/ws';
-
-const steps = [
-  { key: 'intro', label: 'Intro' },
-  { key: 'test', label: 'Test' },
-  { key: 'submit', label: 'Submit' },
-];
+import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.ts';
+import { useEventLogger } from '../../hooks/useEventLogger.ts';
+import apiClient from '../../services/apiClient';
+import { endpoints } from '../../services/endpoints';
 
 const TakeTestShell: React.FC = () => {
-  const { userId } = useAuth();
   const [started, setStarted] = React.useState(false);
-  const [seconds, setSeconds] = React.useState(0);
-  const { push, startSession, endSession, bufferSize } = useEventLogger();
-  const { status } = useWebsocketStatus();
+  const [timeLeft, setTimeLeft] = React.useState(0);
+  const [attemptId, setAttemptId] = React.useState<string | null>(null);
+  const { log, flush } = useEventLogger({ sessionId: attemptId || undefined });
+
+  const start = async () => {
+    const res = await apiClient.post(endpoints.candidate.startTest('default'), {});
+    setAttemptId(res.attemptId || res.id);
+    setTimeLeft(res.timeLeft || 1800);
+    setStarted(true);
+    await enterFullscreen(document.documentElement);
+    log('test_start', {});
+  };
 
   React.useEffect(() => {
-    let timer: any;
-    if (started) {
-      timer = setInterval(() => setSeconds((s) => s + 1), 1000);
-    }
-    return () => { if (timer) clearInterval(timer); };
+    if (!started) return;
+    const t = setInterval(() => setTimeLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
   }, [started]);
 
-  const onStart = async () => {
-    try {
-      await enterFullscreen(document.documentElement);
-      startSession('session-123', userId);
-      push('test_start');
-      setStarted(true);
-    } catch (e) {
-      push('fullscreen_error', { message: (e as Error).message });
-    }
-  };
+  // Basic anti-cheat listeners
+  React.useEffect(() => {
+    const onBlur = () => log('window_blur', {});
+    const onFocus = () => log('window_focus', {});
+    const onCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      log('copy_attempt', {});
+    };
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('copy', onCopy as any);
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('copy', onCopy as any);
+    };
+  }, [log]);
 
-  const onExit = async () => {
-    push('test_exit');
-    endSession();
-    if (isFullscreen()) await exitFullscreen();
-    setStarted(false);
-    setSeconds(0);
-  };
+  // Periodic heartbeat
+  React.useEffect(() => {
+    if (!started || !attemptId) return;
+    const hb = setInterval(() => {
+      apiClient.post(endpoints.candidate.heartbeat(attemptId), { ts: Date.now() }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(hb);
+  }, [started, attemptId]);
+
+  // Auto finish at zero
+  React.useEffect(() => {
+    if (timeLeft === 0 && started && attemptId) {
+      apiClient.post(endpoints.candidate.finishAttempt(attemptId), {}).finally(() => {
+        flush();
+        if (isFullscreen()) exitFullscreen();
+        setStarted(false);
+      });
+    }
+  }, [timeLeft, started, attemptId, flush]);
 
   return (
-    <div className="container">
-      <h1 className="h1">Take Test</h1>
-      <p className="muted">Questions and answers will be randomized.</p>
-
-      <div className="card" style={{ padding: 16, marginTop: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Stepper steps={steps} activeIndex={started ? 1 : 0} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="badge">WS: {status}</span>
-            <span className="badge">Queue: {bufferSize}</span>
-            <span className="badge">Timer: {formatMMSS(seconds)}</span>
-          </div>
+    <div className="p-4">
+      {!started ? (
+        <button onClick={start} className="btn btn-primary">Start Test</button>
+      ) : (
+        <div>
+          <div className="mb-3">Time Left: {timeLeft}s</div>
+          <div className="card">Question area (placeholder)</div>
         </div>
-
-        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-          {!started ? (
-            <button className="btn btn-primary" onClick={onStart} aria-label="Start Test">Start Test</button>
-          ) : (
-            <>
-              <button className="btn btn-ghost" disabled aria-label="Previous Question">Prev</button>
-              <button className="btn btn-ghost" disabled aria-label="Next Question">Next</button>
-              <button className="btn btn-secondary" onClick={onExit} aria-label="Exit Test">Exit</button>
-            </>
-          )}
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <div className="muted">Fullscreen: {isFullscreen() ? 'On' : 'Off'}</div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

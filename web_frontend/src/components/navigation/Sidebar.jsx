@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 
 /**
  * PUBLIC_INTERFACE
- * Collapsible Sidebar with smooth width transition and active highlighting.
+ * Collapsible Sidebar with role-based items and active highlighting.
  */
-const Sidebar = ({ links = [] }) => {
+const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const { role } = useContext(AuthContext);
   const width = collapsed ? 64 : 240;
+
+  const items = useMemo(() => ([
+    { to: '/candidate', label: 'Dashboard', roles: ['candidate'] },
+    { to: '/candidate/test', label: 'Take Test', roles: ['candidate'] },
+    { to: '/hr', label: 'HR', roles: ['hr', 'admin'] },
+    { to: '/hr/panel', label: 'HR Panel', roles: ['hr'] },
+    { to: '/admin', label: 'Admin', roles: ['admin'] },
+    { to: '/employee', label: 'Employee', roles: ['employee', 'admin', 'hr'] },
+  ]), []);
+
+  const visible = items.filter(i => i.roles.includes(role));
 
   return (
     <aside className="sidebar" style={{ width, background: 'var(--surface)', borderRight: '1px solid var(--border)', height: '100vh', position: 'sticky', top: 0, overflow: 'hidden' }}>
@@ -18,11 +31,11 @@ const Sidebar = ({ links = [] }) => {
           onClick={() => setCollapsed(!collapsed)}
           style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '4px 6px' }}
         >
-          {collapsed ? '⟩' : '⟨'}
+          {collapsed ? '\u27e9' : '\u27e8'}
         </button>
       </div>
       <nav style={{ display: 'flex', flexDirection: 'column', padding: '8px' }}>
-        {links.map((l) => (
+        {visible.map((l) => (
           <NavLink
             key={l.to}
             to={l.to}
@@ -39,7 +52,6 @@ const Sidebar = ({ links = [] }) => {
               background: isActive ? 'var(--color-primary-50)' : 'transparent',
             })}
           >
-            <span aria-hidden="true">{l.icon}</span>
             {!collapsed && <span>{l.label}</span>}
           </NavLink>
         ))}
