@@ -6,9 +6,17 @@ router = APIRouter()
 @router.get(
     "/profile",
     summary="Get candidate profile (stub)",
-    description="Returns a placeholder profile.",
+    description="Returns a placeholder profile with minimal fields.",
     operation_id="candidate_get_profile",
 )
 def get_profile():
     """Stub candidate profile."""
-    return {"name": "Candidate", "status": "stub"}
+    return {
+        "id": 1,
+        "name": "Candidate One",
+        "email": "candidate@example.com",
+        "phone": "",
+        "resume_uploaded": False,
+        "skills": ["JavaScript", "Python"],
+        "status": "active",
+    }

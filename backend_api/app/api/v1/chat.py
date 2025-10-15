@@ -23,6 +23,9 @@ class MessageOut(BaseModel):
     class Config:
         from_attributes = True
 
+class MessageIn(BaseModel):
+    content: str = Field(..., description="Message text content")
+
 # PUBLIC_INTERFACE
 @router.get(
     "/threads",
@@ -57,3 +60,22 @@ def list_thread_messages(
     q = select(ChatMessage).where(ChatMessage.thread_id == thread_id).order_by(desc(ChatMessage.created_at)).limit(size)
     rows = db.execute(q).scalars().all()
     return rows
+
+# PUBLIC_INTERFACE
+@router.post(
+    "/threads/{thread_id}/messages",
+    response_model=MessageOut,
+    summary="Create a new message",
+    description="Creates a new message in the specified thread.",
+    operation_id="chat_create_message",
+)
+def create_message(
+    thread_id: int,
+    payload: MessageIn,
+    db: Session = Depends(get_db),
+):
+    msg = ChatMessage(thread_id=thread_id, content=payload.content, sender_id=None)
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return msg

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.models.proctor_event import ProctorEvent
+from app.ws.router import hr_broadcast
 
 router = APIRouter()
 
@@ -57,6 +58,21 @@ def ingest_event(payload: EventIn, db: Session = Depends(get_db)):
     db.add(obj)
     db.commit()
     db.refresh(obj)
+    # Broadcast minimal payload to HR live monitor
+    try:
+        import anyio
+        event_payload = {
+            "type": "proctor_event",
+            "attempt_id": obj.attempt_id,
+            "session_id": obj.session_id,
+            "event_type": obj.event_type,
+            "occurred_at": obj.occurred_at.isoformat(),
+        }
+        # Ensure coroutine executed properly (FastAPI handles async context)
+        anyio.from_thread.run(hr_broadcast, event_payload)
+    except Exception:
+        # Non-fatal if broadcasting fails
+        pass
     return obj
 
 # PUBLIC_INTERFACE
@@ -84,6 +100,20 @@ def ingest_events_bulk(body: BulkEventsIn, db: Session = Depends(get_db)):
     if to_create:
         db.add_all(to_create)
         db.commit()
+        # Broadcast a summarized bulk event to HR
+        try:
+            import anyio
+            anyio.from_thread.run(
+                hr_broadcast,
+                {
+                    "type": "proctor_event_bulk",
+                    "count": len(to_create),
+                    "session_id": to_create[0].session_id if to_create else None,
+                    "attempt_id": to_create[0].attempt_id if to_create else None,
+                },
+            )
+        except Exception:
+            pass
     return {"ingested": len(to_create)}
 
 # PUBLIC_INTERFACE
