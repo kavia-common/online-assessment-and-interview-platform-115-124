@@ -1,5 +1,7 @@
 # End-to-End Validation Checklist
 
+For step-by-step instructions and troubleshooting for each flow, see DEVELOPER_RUNBOOK.md.
+
 Setup:
 - [ ] Backend running on http://localhost:8000; WS at ws://localhost:8000
 - [ ] Frontend running on http://localhost:3000

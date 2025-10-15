@@ -4,6 +4,8 @@ This repository contains:
 - backend_api (FastAPI)
 - web_frontend (React)
 
+For full integration details, environment variables, validation flows, and troubleshooting, see DEVELOPER_RUNBOOK.md.
+
 ## Quick Start (Local Dev)
 
 Backend:
@@ -12,7 +14,13 @@ cd backend_api
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with DATABASE_URL, JWT_SECRET, APP_CORS_ORIGINS=http://localhost:3000, BACKEND_BASE_URL=http://localhost:8000, WEBSOCKET_BASE_URL=ws://localhost:8000
+# Edit .env with:
+# DATABASE_URL
+# JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+# APP_CORS_ORIGINS=http://localhost:3000
+# BACKEND_BASE_URL=http://localhost:8000
+# WEBSOCKET_BASE_URL=ws://localhost:8000
+# SITE_URL=http://localhost:3000
 alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -21,7 +29,10 @@ Frontend:
 ```bash
 cd web_frontend
 cp .env.example .env
-# Ensure REACT_APP_API_BASE_URL=http://localhost:8000 and REACT_APP_WS_BASE_URL=ws://localhost:8000
+# Ensure:
+# REACT_APP_API_BASE_URL=http://localhost:8000
+# REACT_APP_WS_BASE_URL=ws://localhost:8000
+# REACT_APP_ENABLE_MOCKS=false
 npm install
 npm start
 ```
@@ -54,7 +65,7 @@ npm start
 Protocol guidance:
 - Use http + ws in dev; use https + wss in production to avoid mixed-content issues.
 
-See ENVIRONMENT.md for full mapping and details.
+See ENVIRONMENT.md and DEVELOPER_RUNBOOK.md for full mapping and details.
 
 ## E2E Validation
 

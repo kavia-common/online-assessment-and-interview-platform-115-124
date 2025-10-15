@@ -1,12 +1,12 @@
 # Environment Variables Reference
 
-This document maps frontend and backend environment variables, confirms parity, and highlights where they are used.
+This document maps frontend and backend environment variables, confirms parity, and highlights where they are used. For step-by-step integration, validation, and troubleshooting, see DEVELOPER_RUNBOOK.md.
 
 ## Frontend (web_frontend)
 
 Required:
-- REACT_APP_API_BASE_URL: Base URL for REST API (e.g., http://localhost:8000)
-- REACT_APP_WS_BASE_URL: Base URL for WebSockets (e.g., ws://localhost:8000)
+- REACT_APP_API_BASE_URL: Base URL for REST API (dev: http://localhost:8000)
+- REACT_APP_WS_BASE_URL: Base URL for WebSockets (dev: ws://localhost:8000)
 
 Optional:
 - REACT_APP_ENABLE_MOCKS: "false" to call backend, "true" to use mocks
@@ -26,9 +26,9 @@ Required:
 - JWT_SECRET: HMAC secret
 - JWT_ALGORITHM: HS256 (default)
 - ACCESS_TOKEN_EXPIRE_MINUTES: token TTL
-- APP_CORS_ORIGINS: comma-separated origins (include frontend origin)
-- BACKEND_BASE_URL: canonical external URL for REST (aligns with frontend REACT_APP_API_BASE_URL)
-- WEBSOCKET_BASE_URL: canonical external URL for WS (aligns with frontend REACT_APP_WS_BASE_URL)
+- APP_CORS_ORIGINS: comma-separated origins (include frontend origin; dev: http://localhost:3000)
+- BACKEND_BASE_URL: canonical external URL for REST (aligns with frontend REACT_APP_API_BASE_URL; dev: http://localhost:8000)
+- WEBSOCKET_BASE_URL: canonical external URL for WS (aligns with frontend REACT_APP_WS_BASE_URL; dev: ws://localhost:8000)
 
 Recommended:
 - SITE_URL: Frontend URL used in templates/emails
@@ -92,7 +92,7 @@ WebSockets:
 
 - REACT_APP_API_BASE_URL == BACKEND_BASE_URL
 - REACT_APP_WS_BASE_URL == WEBSOCKET_BASE_URL
-- APP_CORS_ORIGINS includes the frontend origin
+- APP_CORS_ORIGINS includes the frontend origin (http://localhost:3000 in dev)
 - Storage and exports paths exist and are writable
 - Email configured if email features are tested
 - Protocols match (http<->ws, https<->wss) to avoid mixed-content issues

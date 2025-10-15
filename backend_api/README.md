@@ -2,6 +2,8 @@
 
 FastAPI backend for the Online Assessment and Interview Platform.
 
+For complete integration guidance (envs, connection, validation, CORS, troubleshooting), see ../DEVELOPER_RUNBOOK.md.
+
 Routes summary:
 /health -> GET basic health
 /auth -> POST /login (stub), expand with /register,/refresh,/me as needed

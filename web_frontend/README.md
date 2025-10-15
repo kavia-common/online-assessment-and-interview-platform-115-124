@@ -2,6 +2,8 @@
 
 This React frontend integrates with the FastAPI backend over REST and WebSockets. It includes authentication, anti-cheat event logging, chat, and HR live monitoring, styled with the Ocean Professional theme.
 
+For complete integration guidance (envs, connection, validation, CORS, troubleshooting), see ../DEVELOPER_RUNBOOK.md.
+
 ## Quick Start
 
 1) Copy environment file and install
@@ -21,14 +23,14 @@ npm start
 
 ## Environment
 
-Copy `.env.example` to `.env` and adjust:
+Copy `.env.example` to `.env` and set explicitly for integration:
 
-- REACT_APP_API_BASE_URL (default: http://localhost:8000)
-- REACT_APP_WS_BASE_URL (default: ws://localhost:8000)
-- REACT_APP_ENABLE_MOCKS (default: false)
+- REACT_APP_API_BASE_URL=http://localhost:8000
+- REACT_APP_WS_BASE_URL=ws://localhost:8000
+- REACT_APP_ENABLE_MOCKS=false
 - Optional: REACT_APP_BUILD_ENV, REACT_APP_SENTRY_DSN
 
-Safe fallbacks exist in `src/config/env.js` to avoid crashes when envs are missing.
+Safe fallbacks exist in `src/config/env.js`.
 
 Alignment with backend:
 - REACT_APP_API_BASE_URL should equal backend BACKEND_BASE_URL
@@ -70,7 +72,7 @@ Tokens are appended as a `token` query parameter.
 ## Chat
 
 - Service: `src/services/chat.js`
-- Loads history via `GET /api/v1/chat/history?channel=...`
+- Loads history via `GET /api/v1/chat/threads` and `GET /api/v1/chat/threads/:id/messages` (or `/api/v1/chat/history?channel=`)
 - Realtime via `/ws/chat`.
 
 ## HR Live Monitor
@@ -119,7 +121,7 @@ CORS:
 Run Notes (Dev):
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8000 (WS: ws://localhost:8000)
-- Ensure .env values match the backend (see ENVIRONMENT.md for matrix)
+- Ensure .env values match the backend (see ENVIRONMENT.md or DEVELOPER_RUNBOOK.md)
 - Avoid mixed-content by pairing http+ws (dev) or https+wss (prod)
 
 ## Missing or Optional Variables to Confirm
